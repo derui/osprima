@@ -22,9 +22,9 @@ rule token = parse
     | '>' {GREATER}
     | "<=" {LESS_THAN}
     | ">=" {GREATER_THAN}
-    | "==" { equal}
-    | "!=" {not_equal}
-    | "===" {deep_equal}
+    | "==" { EQUAL}
+    | "!=" {NOT_EQUAL}
+    | "===" {DEEP_EQUAL}
     | "!==" {DEEP_NOT_EQUAL}
     | '*' {MULTI}
     | '%' {MOD}
@@ -55,11 +55,41 @@ rule token = parse
     | "true" { TRUE }
     | "false" {FALSE}
     | "null" {NULL}
+    | "this" { KEYWORD_THIS }
+    | "get" { KEYWORD_GET }
+    | "set" { KEYWORD_SET }
+    | "new" { KEYWORD_NEW }
+    | "in" { KEYWORD_IN }
+    | "instanceof" { KEYWORD_INSTANCEOF }
+    | "delete" { KEYWORD_DELETE }
+    | "typeof" { KEYWORD_TYPEOF }
+    | "function" { KEYWORD_FUNCTION }
+    | "void" { KEYWORD_VOID }
+    | "var" { KEYWORD_VAR }
+    | "if" { KEYWORD_IF }
+    | "else" { KEYWORD_ELSE }
+    | "do" { KEYWORD_DO }
+    | "while" { KEYWORD_WHILE }
+    | "for" { KEYWORD_FOR }
+    | "continue" { KEYWORD_CONTINUE }
+    | "break" { KEYWORD_BREAK }
+    | "return" { KEYWORD_RETURN }
+    | "with" { KEYWORD_WITH }
+    | "switch" { KEYWORD_SWITCH }
+    | "case" { KEYWORD_CASE }
+    | "default" { KEYWORD_DEFAULT }
+    | "throw" { KEYWORD_THROW }
+    | "try" { KEYWORD_TRY }
+    | "catch" { KEYWORD_CATCH }
+    | "finally" { KEYWORD_FINALLY }
+    | "debugger" { KEYWORD_DEBUGGER }
     | ['0'-'9']+ as digit { DIGIT(digit) }
     | '.' { DOT }
     | '"' { DOUBLE_QUOTE }
+    | '\'' { SINGLE_QUOTE }
     | ['e' 'E'] as exp { EXP(exp) }
     | '\\' ['"' '\\' '/' 'b' 'f' 'n' 'r' 't']  as ctl { CONTROL_CHAR(ctl) }
+    | '\\' ['\'' '\\' '/' 'b' 'f' 'n' 'r' 't']  as ctl { SINGLE_CONTROL_CHAR(ctl) }
     | "\\u"['0'-'9' 'a'-'f' 'A'-'F']['0'-'9' 'a'-'f' 'A'-'F']['0'-'9' 'a'-'f' 'A'-'F']['0'-'9' 'a'-'f' 'A'-'F'] as ctl { CONTROL_CHAR(ctl) }
     | eof  {EOF}
     | _ as c { CHAR(c) }

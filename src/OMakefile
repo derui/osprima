@@ -66,6 +66,10 @@ LIB = osprima
 
 all: js_parser.ml js_lexer.ml
 
+clean: js_parser.ml js_lexer.ml
+	rm js_parser.mli js_parser.ml
+	rm js_lexer.ml
+
 .DEFAULT: all
 
 install:
