@@ -294,11 +294,11 @@
   (* Statement grammers *)
 
   block:
-        |LCBRACE list(statement) RCBRACE {$2}
+        |LCBRACE list(statement) RCBRACE {Js_type.Jstm_block($2)}
   ;
 
   statement:
-    block                {Js_type.Jstm_block($1)}
+    block                {$1}
         |variable_statement   {$1}
         |empty_statement      {$1}
         |expression_statement {$1}
@@ -456,7 +456,7 @@
 
   source_element:
     statement {$1}
-        |function_declaration {$1}
+        |function_declaration {Js_type.Jstm_function($1)}
   ;
 
   program:
@@ -494,10 +494,10 @@
   ;
 
   string:
-    DOUBLE_QUOTE DOUBLE_QUOTE  { Js_type.Jl_string("", "\"\"") }
-        | SINGLE_QUOTE SINGLE_QUOTE  { Js_type.Jl_string("", "''") }
-        | DOUBLE_QUOTE double_chars DOUBLE_QUOTE  { Js_type.Jl_string($2, Printf.sprintf "\"%s\"" $2) }
-        | SINGLE_QUOTE single_chars SINGLE_QUOTE  { Js_type.Jl_string($2, Printf.sprintf "'%s'" $2 )}
+    DOUBLE_QUOTE DOUBLE_QUOTE  { Js_type.Jl_string("\"\"", "") }
+        | SINGLE_QUOTE SINGLE_QUOTE  { Js_type.Jl_string("''", "") }
+        | DOUBLE_QUOTE double_chars DOUBLE_QUOTE  { Js_type.Jl_string(Printf.sprintf "\"%s\"" $2, $2) }
+        | SINGLE_QUOTE single_chars SINGLE_QUOTE  { Js_type.Jl_string(Printf.sprintf "'%s'" $2, $2 )}
   ;
 
   double_chars:
@@ -577,10 +577,10 @@
   ;
 
   number:
-    integer       { Js_type.Jl_number($1, float_of_string($1)) }
-        | integer frac  { Js_type.Jl_number($1 ^ $2, float_of_string($1 ^ $2)) }
-        | integer exp   { Js_type.Jl_number($1 ^ $2, float_of_string($1 ^ $2)) }
-        | integer frac exp { Js_type.Jl_number($1 ^ $2 ^ $3, float_of_string($1 ^ $2 ^ $3)) }
+    integer       { Js_type.Jl_number($1, $1) }
+        | integer frac  { Js_type.Jl_number($1 ^ $2, $1 ^ $2) }
+        | integer exp   { Js_type.Jl_number($1 ^ $2, $1 ^ $2) }
+        | integer frac exp { Js_type.Jl_number($1 ^ $2 ^ $3, $1 ^ $2 ^ $3) }
   ;
 
   integer:

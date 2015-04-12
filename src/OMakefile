@@ -17,6 +17,7 @@ USE_OCAMLFIND = true
 OCAMLPACKS[] =
     camomile
     core
+    tiny_json
 #
 if $(not $(OCAMLFIND_EXISTS))
     eprintln(This project requires ocamlfind, but is was not found.)
