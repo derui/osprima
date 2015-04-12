@@ -1,5 +1,7 @@
 {
-  open Json_parser
+  open Js_parser
+
+  exception SyntaxError of string
 }
 (* Json Tokens *)
 rule token = parse

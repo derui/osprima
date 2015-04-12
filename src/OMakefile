@@ -16,6 +16,7 @@ USE_OCAMLFIND = true
 #
 OCAMLPACKS[] =
     camomile
+    core
 #
 if $(not $(OCAMLFIND_EXISTS))
     eprintln(This project requires ocamlfind, but is was not found.)
@@ -38,7 +39,7 @@ BYTE_ENABLED = true
 #
 # Various options
 #
-OCAMLFLAGS    += 
+OCAMLFLAGS    += -thread
 OCAMLCFLAGS   +=
 OCAMLOPTFLAGS +=
 # OCAML_LINK_FLAGS +=
@@ -64,11 +65,15 @@ LocalOCamlGeneratedFiles(js_parser.ml js_lexer.ml)
 #
 LIB = osprima
 
-all: js_parser.ml js_lexer.ml
+PROGRAM=osparse
 
-clean: js_parser.ml js_lexer.ml
-	rm js_parser.mli js_parser.ml
-	rm js_lexer.ml
+FILE[]= $(ls *.ml)
+FILE += $(ls *.mly)
+FILE += $(ls *.mll)
+
+OCamlProgram($(PROGRAM), $(removesuffix $(FILE)))
+
+all: $(PROGRAM)$(EXE)
 
 .DEFAULT: all
 
