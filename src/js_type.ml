@@ -24,10 +24,10 @@ and expression =
   | Jexp_update of expression * UTF8.t * bool
   | Jexp_conditional of expression * expression * expression
   | Jexp_assignment of expression * UTF8.t * expression
-  | Jexp_function of expression option * expression list * statement list
+  | Jexp_function of expression option * expression list * statement
 and declaration =
     Jdec_var of expression * expression option
-  | Jdec_function of expression * expression list * statement list
+  | Jdec_function of expression * expression list * statement
 and program = Jprog_program of statement list
 and statement =
     Jstm_var of declaration list

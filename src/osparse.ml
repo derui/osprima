@@ -15,8 +15,7 @@ let parse_with_error lexbuf =
 let rec parse_and_print lexbuf =
   match parse_with_error lexbuf with
   | Some prog ->
-     Printf.printf "foobar";
-    parse_and_print lexbuf
+     Js_typetree.program_to_json prog |> Tiny_json.Json.format Format.std_formatter
   | None -> ()
 
 let loop filename () =

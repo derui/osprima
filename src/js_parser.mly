@@ -82,10 +82,10 @@
   property_assignment:
     property_name COLON assignment_expression {Js_type.Jexp_property ($1,$3)}
    |KEYWORD_GET property_name LPAREN RPAREN LCBRACE function_body RCBRACE {
-     Js_type.Jexp_property ($2, Js_type.Jexp_function (None, [], $6))
+     Js_type.Jexp_property ($2, Js_type.Jexp_function (None, [], Js_type.Jstm_block($6)))
    }
    |KEYWORD_SET property_name LPAREN property_set_parameter_list RPAREN LCBRACE function_body RCBRACE {
-     Js_type.Jexp_property ($2, Js_type.Jexp_function (None, $4, $7))
+     Js_type.Jexp_property ($2, Js_type.Jexp_function (None, $4, Js_type.Jstm_block($7)))
    }
   ;
 
@@ -436,13 +436,13 @@
 
   function_declaration:
     KEYWORD_FUNCTION identifier LPAREN list(formal_parameter) RPAREN LCBRACE function_body RCBRACE {
-      Js_type.Jdec_function ($2, $4, $7)
+      Js_type.Jdec_function ($2, $4, Js_type.Jstm_block($7))
     }
   ;
 
   function_expression:
     KEYWORD_FUNCTION option(identifier) LPAREN list(formal_parameter) RPAREN LCBRACE function_body RCBRACE {
-      Js_type.Jexp_function ($2, $4, $7)
+      Js_type.Jexp_function ($2, $4, Js_type.Jstm_block($7))
     }
   ;
 
