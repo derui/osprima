@@ -1,6 +1,7 @@
 /* JavaScriptのパーサー */
 %{
   open CamomileLibrary
+  exception SyntaxError of string
 %}
 
 (* punctuators *)
@@ -20,6 +21,12 @@
 %token KEYWORD_RETURN KEYWORD_WITH KEYWORD_SWITCH KEYWORD_CASE KEYWORD_DEFAULT
 %token KEYWORD_THROW KEYWORD_TRY KEYWORD_CATCH KEYWORD_FINALLY KEYWORD_DEBUGGER
 
+(* %token <string> WHITE_SPACE *)
+(* %token <string> LINE_TERMINATOR *)
+
+%token <string> IDENT
+%token <string> MULTI_LINE_COMMENT
+%token <string> SINGLE_LINE_COMMENT
 %token TRUE FALSE NULL
 %token DOLLAR UNDERSCORE
 %token DOUBLE_QUOTE SINGLE_QUOTE
@@ -70,13 +77,7 @@
 
   object_literal:
     LCBRACE RCBRACE {[]}
-   |LCBRACE property_name_and_value_list RCBRACE {$2}
-   |LCBRACE property_name_and_value_list COMMA RCBRACE {$2}
-  ;
-
-  property_name_and_value_list:
-    property_assignment {[$1]}
-   |property_name_and_value_list COMMA property_assignment {$1 @ [$3]}
+   |LCBRACE list(property_assignment) option(COMMA) RCBRACE {$2}
   ;
 
   property_assignment:
@@ -90,7 +91,7 @@
   ;
 
   property_name:
-    identifier {$1}
+    identifier_name {Js_type.Jexp_ident ($1)}
    |string {Js_type.Jexp_literal($1)}
    |number {Js_type.Jexp_literal($1)}
   ;
@@ -107,11 +108,6 @@
    |KEYWORD_NEW member_expression arguments {Js_type.Jexp_new($2, $3)}
   ;
 
-  new_expression:
-    member_expression {$1}
-   |KEYWORD_NEW new_expression {$2}
-  ;
-
   call_expression:
     member_expression arguments {Js_type.Jexp_call($1,$2)}
    |call_expression arguments {Js_type.Jexp_call($1, $2)}
@@ -124,8 +120,8 @@
   ;
 
   left_hand_side_expression:
-    new_expression {$1}
-                |call_expression {$1}
+    member_expression {$1}
+    |call_expression {$1}
   ;
 
   post_fix_expresison:
@@ -303,6 +299,7 @@
         |empty_statement      {$1}
         |expression_statement {$1}
         |if_statement         {$1}
+        |if_else_statement    {$1}
         |iteration_statement  {$1}
         |continue_statement   {$1}
         |break_statement      {$1}
@@ -348,8 +345,11 @@
   ;
 
   if_statement:
-    KEYWORD_IF LPAREN expression RPAREN statement {Js_type.Jstm_if($3, $5, None)}
-        |KEYWORD_IF LPAREN expression RPAREN statement KEYWORD_ELSE statement {Js_type.Jstm_if($3, $5, Some($7))}
+    KEYWORD_IF LPAREN expression RPAREN statement {Js_type.Jstm_if($3, $5)}
+  ;
+
+  if_else_statement:
+    stm=if_statement KEYWORD_ELSE statement {Js_type.Jstm_if_else(stm, $3)}
   ;
 
   iteration_statement:
@@ -434,15 +434,26 @@
 
   (* Programs and functions grammer *)
 
+  function_common:
+    KEYWORD_FUNCTION id=identifier LPAREN ls=separated_list(COMMA, formal_parameter) RPAREN LCBRACE body=function_body RCBRACE {
+      (id, ls, Js_type.Jstm_block(body))
+    }
+  ;
+
   function_declaration:
-    KEYWORD_FUNCTION identifier LPAREN list(formal_parameter) RPAREN LCBRACE function_body RCBRACE {
-      Js_type.Jdec_function ($2, $4, Js_type.Jstm_block($7))
+    common=function_common {
+      let id, ls ,body = common in
+      Js_type.Jdec_function (id, ls, body)
     }
   ;
 
   function_expression:
-    KEYWORD_FUNCTION option(identifier) LPAREN list(formal_parameter) RPAREN LCBRACE function_body RCBRACE {
-      Js_type.Jexp_function ($2, $4, Js_type.Jstm_block($7))
+    common=function_common {
+      let id, ls ,body = common in
+      Js_type.Jexp_function (Some(id), ls, body)
+    }
+                                                                                                         |KEYWORD_FUNCTION LPAREN ls=separated_list(COMMA, formal_parameter) RPAREN LCBRACE body=function_body RCBRACE {
+      Js_type.Jexp_function (None, ls, Js_type.Jstm_block(body))
     }
   ;
 
@@ -451,143 +462,144 @@
   ;
 
   function_body:
-    list(source_element) {$1}
+    {[]}
   ;
 
   source_element:
     statement {$1}
-        |function_declaration {Js_type.Jstm_function($1)}
+           |function_declaration {Js_type.Jstm_function($1)}
+           |comment {$1}
   ;
 
   program:
-    list(source_element) {Js_type.Jprog_program ($1)}
+    function_body {Js_type.Jprog_program ($1)}
   ;
 
   (* --- Programs and functions grammer *)
 
   identifier:
-    identifier_name {Js_type.Jexp_ident($1)}
+    IDENT {Js_type.Jexp_ident($1)}
   ;
 
   identifier_name:
     identifier_start {$1}
-        |identifier_name identifier_part {$1 ^ $2}
+           |identifier_name identifier_part {$1 ^ $2}
   ;
 
   identifier_start:
     CHAR          { Char.escaped($1) }
-        | tok_underscore   { $1 }
-        | tok_dollar   { $1 }
+           | UNDERSCORE   { "_" }
+           | DOLLAR   { "$" }
   ;
 
   identifier_part:
     identifier_start {$1}
-        | DIGIT  { $1 }
+           | DIGIT  { $1 }
   ;
 
   literal:
     NULL {Js_type.Jl_null}
-        |TRUE {Js_type.Jl_bool(true)}
-        |FALSE {Js_type.Jl_bool(false)}
-        |string {$1}
-        |number {$1}
+           |TRUE {Js_type.Jl_bool(true)}
+           |FALSE {Js_type.Jl_bool(false)}
+           |string {$1}
+           |number {$1}
   ;
 
   string:
     DOUBLE_QUOTE DOUBLE_QUOTE  { Js_type.Jl_string("\"\"", "") }
-        | SINGLE_QUOTE SINGLE_QUOTE  { Js_type.Jl_string("''", "") }
-        | DOUBLE_QUOTE double_chars DOUBLE_QUOTE  { Js_type.Jl_string(Printf.sprintf "\"%s\"" $2, $2) }
-        | SINGLE_QUOTE single_chars SINGLE_QUOTE  { Js_type.Jl_string(Printf.sprintf "'%s'" $2, $2 )}
+           | SINGLE_QUOTE SINGLE_QUOTE  { Js_type.Jl_string("''", "") }
+           | DOUBLE_QUOTE double_chars DOUBLE_QUOTE  { Js_type.Jl_string(Printf.sprintf "\"%s\"" $2, $2) }
+           | SINGLE_QUOTE single_chars SINGLE_QUOTE  { Js_type.Jl_string(Printf.sprintf "'%s'" $2, $2 )}
   ;
 
   double_chars:
     double_char  { $1 }
-        | double_char double_chars { $1 ^ $2 }
+           | double_char double_chars { $1 ^ $2 }
   ;
 
   single_chars:
     single_char  { $1 }
-        | single_char single_chars { $1 ^ $2 }
+           | single_char single_chars { $1 ^ $2 }
   ;
 
   punctuator_chars:
     DOLLAR {"$"}
-        |UNDERSCORE {"_"}
-        |LCBRACE {"{"}
-        |LPAREN {"("}
-        |LBRACE {"["}
-        |RCBRACE {"}"}
-        |RPAREN {")"}
-        |RBRACE {"]"}
-        |COLON {":"}
-        |SEMICOLON {";"}
-        |COMMA {","}
-        |MINUS {"-"}
-        |PLUS {"+"}
-        |LESS {"<"}
-        |GREATER {">"}
-        |LESS_THAN {"<="}
-        |GREATER_THAN {">="}
-        |EQUAL {"=="}
-        |NOT_EQUAL {"!="}
-        |DEEP_EQUAL {"==="}
-        |DEEP_NOT_EQUAL {"!=="}
-        |MULTI {"*"}
-        |MOD {"%"}
-        |INCREMENT {"++"}
-        |DECREMENT {"--"}
-        |LSHIFT {"<<"}
-        |RSHIFT {">>"}
-        |AND {"&"}
-        |OR {"|"}
-        |XOR {"^"}
-        |NOT {"!"}
-        |COMP {"~"}
-        |LOGICAL_AND {"&&"}
-        |LOGICAL_OR {"||"}
-        |QUESTION {"?"}
-        |ASSIGN {"="}
-        |PLUS_ASSIGN {"+="}
-        |MINUS_ASSIGN {"-="}
-        |MULTI_ASSIGN {"*="}
-        |MOD_ASSIGN {"%="}
-        |LSHIFT_ASSIGN {"<<="}
-        |RSHIFT_ASSIGN {">>="}
-        |AND_ASSIGN {"&="}
-        |OR_ASSIGN {"|="}
-        |XOR_ASSIGN {"^="}
-        |DIV {"/"}
-        |DIV_ASSIGN {"/="}
+           |UNDERSCORE {"_"}
+           |LCBRACE {"{"}
+           |LPAREN {"("}
+           |LBRACE {"["}
+           |RCBRACE {"}"}
+           |RPAREN {")"}
+           |RBRACE {"]"}
+           |COLON {":"}
+           |SEMICOLON {";"}
+           |COMMA {","}
+           |MINUS {"-"}
+           |PLUS {"+"}
+           |LESS {"<"}
+           |GREATER {">"}
+           |LESS_THAN {"<="}
+           |GREATER_THAN {">="}
+           |EQUAL {"=="}
+           |NOT_EQUAL {"!="}
+           |DEEP_EQUAL {"==="}
+           |DEEP_NOT_EQUAL {"!=="}
+           |MULTI {"*"}
+           |MOD {"%"}
+           |INCREMENT {"++"}
+           |DECREMENT {"--"}
+           |LSHIFT {"<<"}
+           |RSHIFT {">>"}
+           |AND {"&"}
+           |OR {"|"}
+           |XOR {"^"}
+           |NOT {"!"}
+           |COMP {"~"}
+           |LOGICAL_AND {"&&"}
+           |LOGICAL_OR {"||"}
+           |QUESTION {"?"}
+           |ASSIGN {"="}
+           |PLUS_ASSIGN {"+="}
+           |MINUS_ASSIGN {"-="}
+           |MULTI_ASSIGN {"*="}
+           |MOD_ASSIGN {"%="}
+           |LSHIFT_ASSIGN {"<<="}
+           |RSHIFT_ASSIGN {">>="}
+           |AND_ASSIGN {"&="}
+           |OR_ASSIGN {"|="}
+           |XOR_ASSIGN {"^="}
+           |DIV {"/"}
+           |DIV_ASSIGN {"/="}
   ;
 
   double_char:
     CONTROL_CHAR   { $1 }
-        | DIGIT         { $1 }
-        | EXP           { Char.escaped($1) }
-        | CHAR          { Char.escaped($1) }
-        | punctuator_chars {$1}
+           | DIGIT         { $1 }
+           | EXP           { Char.escaped($1) }
+           | CHAR          { Char.escaped($1) }
+           | punctuator_chars {$1}
   ;
 
   single_char:
     SINGLE_CONTROL_CHAR   { $1 }
-        | DIGIT         { $1 }
-        | EXP           { Char.escaped($1) }
-        | punctuator_chars {$1}
-        | CHAR          { Char.escaped($1) }
+           | DIGIT         { $1 }
+           | EXP           { Char.escaped($1) }
+           | punctuator_chars {$1}
+           | CHAR          { Char.escaped($1) }
   ;
 
   number:
     integer       { Js_type.Jl_number($1, $1) }
-        | integer frac  { Js_type.Jl_number($1 ^ $2, $1 ^ $2) }
-        | integer exp   { Js_type.Jl_number($1 ^ $2, $1 ^ $2) }
-        | integer frac exp { Js_type.Jl_number($1 ^ $2 ^ $3, $1 ^ $2 ^ $3) }
+           | integer frac  { Js_type.Jl_number($1 ^ $2, $1 ^ $2) }
+           | integer exp   { Js_type.Jl_number($1 ^ $2, $1 ^ $2) }
+           | integer frac exp { Js_type.Jl_number($1 ^ $2 ^ $3, $1 ^ $2 ^ $3) }
   ;
 
   integer:
     DIGIT   { $1 }
-        | DIGIT digits  { $1 ^ $2 }
-        | MINUS DIGIT { "-" ^ $2 }
-        | MINUS DIGIT digits { "-" ^ $2 ^ $3 }
+           | DIGIT digits  { $1 ^ $2 }
+           | MINUS DIGIT { "-" ^ $2 }
+           | MINUS DIGIT digits { "-" ^ $2 ^ $3 }
   ;
 
   frac:
@@ -600,26 +612,15 @@
 
   digits:
     DIGIT  { $1 }
-        |DIGIT digits { $1 ^ $2 }
+           |DIGIT digits { $1 ^ $2 }
   ;
 
   e:
     EXP  { Char.escaped($1) }
-        | EXP PLUS { Char.escaped($1) ^ "+"}
-        | EXP MINUS { Char.escaped($1) ^ "-" }
+           | EXP PLUS { Char.escaped($1) ^ "+"}
+           | EXP MINUS { Char.escaped($1) ^ "-" }
   ;
 
-  tok_dollar: DOLLAR {"$"};
-  tok_underscore: UNDERSCORE {"_"};
-  tok_lcbrace: LCBRACE {"{"};
-  tok_lparen: LPAREN {"("};
-  tok_lbrace: LBRACE {"["};
-  tok_rcbrace: RCBRACE {"}"};
-  tok_rparen: RPAREN {")"};
-  tok_rbrace: RBRACE {"]"};
-  tok_colon: COLON {":"};
-  tok_semicolon: SEMICOLON {";"};
-  tok_comma: COMMA {","};
   tok_minus: MINUS {"-"};
   tok_plus: PLUS {"+"};
   tok_less: LESS {"<"};
@@ -643,7 +644,6 @@
   tok_comp: COMP {"~"};
   tok_logical_and: LOGICAL_AND {"&&"};
   tok_logical_or: LOGICAL_OR {"||"};
-  tok_question: QUESTION {"?"};
   tok_assign: ASSIGN {"="};
   tok_plus_assign: PLUS_ASSIGN {"+="};
   tok_minus_assign: MINUS_ASSIGN {"-="};
@@ -655,10 +655,14 @@
   tok_or_assign: OR_ASSIGN {"|="};
   tok_xor_assign: XOR_ASSIGN {"^="};
   tok_div: DIV {"/"};
-  tok_div_assign: DIV_ASSIGN {"/="};
 
   keyword_delete: KEYWORD_DELETE {"delete"};
   keyword_void: KEYWORD_VOID {"void"};
   keyword_in: KEYWORD_IN {"in"};
   keyword_instanceof: KEYWORD_INSTANCEOF {"instanceof"};
   keyword_typeof: KEYWORD_TYPEOF {"typeof"};
+
+  comment:
+    MULTI_LINE_COMMENT {Js_type.Jstm_comment_block ($1)}
+           |SINGLE_LINE_COMMENT {Js_type.Jstm_comment_line ($1)}
+  ;

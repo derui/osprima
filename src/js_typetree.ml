@@ -74,12 +74,14 @@ and dec_to_json = function
 and statement_to_json = function
   | T.Jstm_var decs -> ast "VariableDeclaration" [("declarations", J.Array (List.map ~f:dec_to_json decs))]
   | T.Jstm_empty -> ast "EmptyStatement" []
-  | T.Jstm_if (cond, stmt, els) ->
+  | T.Jstm_if (cond, stmt) ->
      ast "IfStatement" [("test", exp_to_json cond);
                         ("consequent", statement_to_json stmt);
-                        ("alternate", match els with
-                        | None -> J.Null
-                        | Some els -> statement_to_json stmt)]
+                        ("alternate", J.Null)]
+  | T.Jstm_if_else (T.Jstm_if(cond, stmt), els) ->
+     ast "IfStatement" [("test", exp_to_json cond);
+                        ("consequent", statement_to_json stmt);
+                        ("alternate", statement_to_json els)]
   | T.Jstm_expression e -> ast "ExpressionStatement" [("expression", exp_to_json e)]
   | T.Jstm_do_while (cond, stmt) ->
      ast "DoWhileStatement" [("body", statement_to_json stmt)]
@@ -134,6 +136,8 @@ and statement_to_json = function
      ast "ThrowStatement" [("argument", exp_to_json e)]
   | T.Jstm_debugger -> ast "DebuggerStatement" []
   | T.Jstm_function dec -> dec_to_json dec
+  | T.Jstm_comment_block _ -> J.Null
+  | T.Jstm_comment_line _ -> J.Null
 and case_to_json = function
   | T.Jcas_case (e, stmt) -> ast "SwitchCase" [("test", or_else exp_to_json e);
                                                ("consequent", J.Array(List.map ~f:statement_to_json stmt))]

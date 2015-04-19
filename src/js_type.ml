@@ -32,7 +32,8 @@ and program = Jprog_program of statement list
 and statement =
     Jstm_var of declaration list
   | Jstm_empty
-  | Jstm_if of expression * statement * statement option
+  | Jstm_if of expression * statement
+  | Jstm_if_else of statement * statement
   | Jstm_expression of expression
   | Jstm_do_while of expression * statement
   | Jstm_while of expression * statement
@@ -51,6 +52,9 @@ and statement =
   | Jstm_throw of expression
   | Jstm_debugger
   | Jstm_function of declaration
+  | Jstm_comment_block of UTF8.t
+  | Jstm_comment_line of UTF8.t
+
 and catch = Jstm_catch of expression * statement
 and finally = Jstm_finally of statement
 and case = Jcas_case of expression option * statement list

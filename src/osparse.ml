@@ -10,6 +10,7 @@ let print_position outx lexbuf =
 let parse_with_error lexbuf =
   try Js_parser.parser_main Js_lexer.token lexbuf with
   | Js_parser.Error -> fprintf stderr "%a: syntax error\n" print_position lexbuf;
+    fprintf stderr "%s: syntax error\n" (Lexing.lexeme lexbuf);
     exit (-1)
 
 let rec parse_and_print lexbuf =
