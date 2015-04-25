@@ -30,11 +30,13 @@
     |  "catch"  ->  KEYWORD_CATCH 
     |  "finally"  ->  KEYWORD_FINALLY 
     |  "debugger"  ->  KEYWORD_DEBUGGER
-    | s -> failwith "Unknown keyword: " ^ s
+    | s -> failwith ("Unknown keyword: " ^ s)
 }
 let line_terminator = ['\n' '\r'] | "\r\n" | "\x20\x28" | "\x20\x29"
 let white_space = [' ' '\t' '\x0b' '\x0c' '\xa0']
 let identifier_start = ['a'-'z' 'A'-'Z'] | '$' | '_'
+let decimal_integer_literal = '0' | (['1'-'9'] ['0'-'9']*) 
+let exponent_part = ['e' 'E'] ['-' '+']? ['0'-'9']+
 let reserved_word = "true" | "false" | "null" | "this" | "get" | "set" | "new"
   | "in" | "instanceof" | "delete" | "typeof" | "function" | "void"
   | "var" | "if" | "else" | "do" | "while"
@@ -124,7 +126,10 @@ let reserved_word = "true" | "false" | "null" | "this" | "get" | "set" | "new"
   | "catch" { KEYWORD_CATCH }
   | "finally" { KEYWORD_FINALLY }
   | "debugger" { KEYWORD_DEBUGGER }
-  | ['0'-'9']+ as digit { DIGIT(digit) }
+  | decimal_integer_literal exponent_part? as digit { DECIMAL_LITERAL(digit)}
+  | decimal_integer_literal '.' ['0'-'9']* exponent_part? as digit { DECIMAL_LITERAL(digit)}
+  | '.' ['0'-'9']+ exponent_part? as digit { DECIMAL_LITERAL(digit)}
+  | '0' ['x' 'X'] ['a'-'f' 'A'-'F' '0'-'9']+ as digit { HEX_DIGIT(digit) }
   | '.' { DOT }
   | '"' { DOUBLE_QUOTE }
   | '\'' { SINGLE_QUOTE }
@@ -139,7 +144,7 @@ let reserved_word = "true" | "false" | "null" | "this" | "get" | "set" | "new"
 
 and identifier buf = parse
     | reserved_word { to_keyword (Lexing.lexeme lexbuf)}
-    | _ {identifier_name lexbuf}
+    | _ {identifier_name buf lexbuf}
 and identifier_name buf = parse
     | identifier_start {identifier_part (buf ^ (Lexing.lexeme lexbuf)) lexbuf}
     | white_space | line_terminator {IDENT(buf)}

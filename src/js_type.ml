@@ -32,8 +32,7 @@ and program = Jprog_program of statement list
 and statement =
     Jstm_var of declaration list
   | Jstm_empty
-  | Jstm_if of expression * statement
-  | Jstm_if_else of statement * statement
+  | Jstm_if of expression * statement * statement option
   | Jstm_expression of expression
   | Jstm_do_while of expression * statement
   | Jstm_while of expression * statement

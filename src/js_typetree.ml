@@ -74,14 +74,13 @@ and dec_to_json = function
 and statement_to_json = function
   | T.Jstm_var decs -> ast "VariableDeclaration" [("declarations", J.Array (List.map ~f:dec_to_json decs))]
   | T.Jstm_empty -> ast "EmptyStatement" []
-  | T.Jstm_if (cond, stmt) ->
+  | T.Jstm_if (cond, stmt, alternate) ->
+     let alternate = match alternate with
+       | None -> J.Null
+       | Some s -> statement_to_json s in
      ast "IfStatement" [("test", exp_to_json cond);
                         ("consequent", statement_to_json stmt);
-                        ("alternate", J.Null)]
-  | T.Jstm_if_else (T.Jstm_if(cond, stmt), els) ->
-     ast "IfStatement" [("test", exp_to_json cond);
-                        ("consequent", statement_to_json stmt);
-                        ("alternate", statement_to_json els)]
+                        ("alternate", alternate)]
   | T.Jstm_expression e -> ast "ExpressionStatement" [("expression", exp_to_json e)]
   | T.Jstm_do_while (cond, stmt) ->
      ast "DoWhileStatement" [("body", statement_to_json stmt)]
