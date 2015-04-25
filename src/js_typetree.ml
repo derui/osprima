@@ -62,7 +62,7 @@ and exp_to_json = function
        ("body", statement_to_json state);
        ("generator", J.Bool false);
        ("expression", J.Bool false)]
-       
+
 and dec_to_json = function
   | T.Jdec_var (e, init) ->
      ast "VariableDeclarator" [("id", exp_to_json e);
@@ -70,7 +70,7 @@ and dec_to_json = function
   | _ -> failwith "not implemented declaration"
 
 (* Statement module to serialize abstract syntax tree *)
-     
+
 and statement_to_json = function
   | T.Jstm_var decs -> ast "VariableDeclaration" [("declarations", J.Array (List.map ~f:dec_to_json decs))]
   | T.Jstm_empty -> ast "EmptyStatement" []
@@ -149,4 +149,11 @@ and finalizer_to_json = function
 let program stmt = J.Object [("type", J.String "Program"); ("body", stmt)]
 
 let program_to_json = function
-  | T.Jprog_program stmt -> program (J.Array (List.map ~f:statement_to_json stmt))
+  | T.Jprog_program stmt -> begin
+     let ignore_null = function
+       | J.Null -> false
+       | _ -> true
+     in
+     let stmt = List.map ~f:statement_to_json stmt |> List.filter ~f:ignore_null in
+     program (J.Array stmt)
+  end

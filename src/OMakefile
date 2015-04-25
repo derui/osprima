@@ -40,7 +40,7 @@ BYTE_ENABLED = true
 #
 # Various options
 #
-OCAMLFLAGS    += -thread
+OCAMLFLAGS    += -thread -g
 OCAMLCFLAGS   +=
 OCAMLOPTFLAGS +=
 MENHIR_FLAGS += --strict --infer --explain

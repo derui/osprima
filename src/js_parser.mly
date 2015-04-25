@@ -36,19 +36,15 @@
 %token <string> SINGLE_LINE_COMMENT
 %token TRUE FALSE NULL
 %token DOLLAR UNDERSCORE
-%token DOUBLE_QUOTE SINGLE_QUOTE
-%token <char> EXP
 %token <char> CHAR
+%token <string> STRING
 %token EOF
-%token <string> CONTROL_CHAR
-%token <string> SINGLE_CONTROL_CHAR
 %start parser_main
 %type <Js_type.program option> parser_main
 %%
-  ;
 
-  parser_main:
-    EOF {None}
+parser_main:
+EOF {None}
    |program EOF {Some $1}
   ;
 
@@ -105,7 +101,7 @@
 
   property_name:
     identifier_name {Js_type.Jexp_ident ($1)}
-   |string {Js_type.Jexp_literal($1)}
+   |STRING {Js_type.Jexp_literal(Js_type.Jl_string($1, $1))}
    |numeric_literal {Js_type.Jexp_literal($1)}
   ;
 
@@ -399,21 +395,21 @@
 
   expression_nfb:
     assignment_expression_nfb {Js_type.Jexp_sequence([$1])}
-                |exp=expression_nfb COMMA next=assignment_expression {
-                  match exp with
-                  | Js_type.Jexp_sequence lst -> Js_type.Jexp_sequence(lst @ [next])
-                  | _ -> failwith "Unknown sequence"
-                }
+                                           |exp=expression_nfb COMMA next=assignment_expression {
+                                             match exp with
+                                             | Js_type.Jexp_sequence lst -> Js_type.Jexp_sequence(lst @ [next])
+                                             | _ -> failwith "Unknown sequence"
+                                           }
   ;
 
 
   expression_no_in:
     assignment_expression_no_in {Js_type.Jexp_sequence([$1])}
-                                           |exp=expression_no_in COMMA next=assignment_expression_no_in {
-                                             match exp with
-                                             | Js_type.Jexp_sequence lst -> Js_type.Jexp_sequence(lst @ [next])
-                                             | _ -> failwith "Unknown sequence"
-                                           }
+                                                                          |exp=expression_no_in COMMA next=assignment_expression_no_in {
+                                                                            match exp with
+                                                                            | Js_type.Jexp_sequence lst -> Js_type.Jexp_sequence(lst @ [next])
+                                                                            | _ -> failwith "Unknown sequence"
+                                                                          }
   ;
 
   (* --- Expression grammers *)
@@ -426,37 +422,37 @@
 
   statement:
     block                {$1}
-                                                                            |variable_statement   {$1}
-                                                                            |empty_statement      {$1}
-                                                                            |expression_statement {$1}
-                                                                            |if_statement         {$1}
-                                                                            |iteration_statement  {$1}
-                                                                            |continue_statement   {$1}
-                                                                            |break_statement      {$1}
-                                                                            |return_statement     {$1}
-                                                                            |with_statement       {$1}
-                                                                            |labelled_statement   {$1}
-                                                                            |switch_statement     {$1}
-                                                                            |throw_statement      {$1}
-                                                                            |try_statement        {$1}
-                                                                            |debugger_statement   {$1}
+                                                                                                           |variable_statement   {$1}
+                                                                                                           |empty_statement      {$1}
+                                                                                                           |expression_statement {$1}
+                                                                                                           |if_statement         {$1}
+                                                                                                           |iteration_statement  {$1}
+                                                                                                           |continue_statement   {$1}
+                                                                                                           |break_statement      {$1}
+                                                                                                           |return_statement     {$1}
+                                                                                                           |with_statement       {$1}
+                                                                                                           |labelled_statement   {$1}
+                                                                                                           |switch_statement     {$1}
+                                                                                                           |throw_statement      {$1}
+                                                                                                           |try_statement        {$1}
+                                                                                                           |debugger_statement   {$1}
   ;
   statement_no_else:
     block                {$1}
-                                                                            |variable_statement   {$1}
-                                                                            |empty_statement      {$1}
-                                                                            |expression_statement {$1}
-                                                                            |if_statement_no_else         {$1}
-                                                                            |iteration_statement  {$1}
-                                                                            |continue_statement   {$1}
-                                                                            |break_statement      {$1}
-                                                                            |return_statement     {$1}
-                                                                            |with_statement       {$1}
-                                                                            |labelled_statement   {$1}
-                                                                            |switch_statement     {$1}
-                                                                            |throw_statement      {$1}
-                                                                            |try_statement        {$1}
-                                                                            |debugger_statement   {$1}
+                                                                                                           |variable_statement   {$1}
+                                                                                                           |empty_statement      {$1}
+                                                                                                           |expression_statement {$1}
+                                                                                                           |if_statement_no_else         {$1}
+                                                                                                           |iteration_statement  {$1}
+                                                                                                           |continue_statement   {$1}
+                                                                                                           |break_statement      {$1}
+                                                                                                           |return_statement     {$1}
+                                                                                                           |with_statement       {$1}
+                                                                                                           |labelled_statement   {$1}
+                                                                                                           |switch_statement     {$1}
+                                                                                                           |throw_statement      {$1}
+                                                                                                           |try_statement        {$1}
+                                                                                                           |debugger_statement   {$1}
   ;
 
   variable_statement:
@@ -469,11 +465,11 @@
 
   variable_declaration:
     identifier {Js_type.Jdec_var($1, None)}
-                                                                            |identifier initialiser {Js_type.Jdec_var($1, Some($2))}
+                                                                                                           |identifier initialiser {Js_type.Jdec_var($1, Some($2))}
   ;
   variable_declaration_no_in:
     identifier {Js_type.Jdec_var($1, None)}
-                                                                            |identifier initialiser_no_in {Js_type.Jdec_var($1, Some($2))}
+                                                                                                           |identifier initialiser_no_in {Js_type.Jdec_var($1, Some($2))}
   ;
 
   initialiser:
@@ -498,38 +494,38 @@
   if_statement_no_else:
     KEYWORD_IF LPAREN expression RPAREN statement_no_else {Js_type.Jstm_if($3, $5, None)}
 
-  else_statement:
+    else_statement:
     KEYWORD_ELSE statement {$2}
   ;
 
   iteration_statement:
     KEYWORD_DO statement KEYWORD_WHILE LPAREN expression RPAREN SEMICOLON {Js_type.Jstm_do_while($5, $2)}
-        |KEYWORD_WHILE LPAREN expression RPAREN statement {Js_type.Jstm_while($3, $5)}
-        |KEYWORD_FOR LPAREN option(expression_no_in) SEMICOLON
-            option(expression)
-            SEMICOLON option(expression) RPAREN statement {Js_type.Jstm_for($3, $5, $7, $9)}
-        |KEYWORD_FOR LPAREN KEYWORD_VAR variable_declaration_list_no_in SEMICOLON
-            option(expression)
-            SEMICOLON option(expression) RPAREN statement {Js_type.Jstm_for_dec($4, $6, $8, $10)}
-        |KEYWORD_FOR LPAREN left_hand_side_expression KEYWORD_IN expression RPAREN statement {
-          Js_type.Jstm_for_in($3, $5, $7)}
-        |KEYWORD_FOR LPAREN KEYWORD_VAR variable_declaration_no_in KEYWORD_IN expression RPAREN statement {
-          Js_type.Jstm_for_in_dec($4, $6, $8)}
+                                                                                                           |KEYWORD_WHILE LPAREN expression RPAREN statement {Js_type.Jstm_while($3, $5)}
+                                                                                                           |KEYWORD_FOR LPAREN option(expression_no_in) SEMICOLON
+                                                                                                               option(expression)
+                                                                                                               SEMICOLON option(expression) RPAREN statement {Js_type.Jstm_for($3, $5, $7, $9)}
+                                                                                                           |KEYWORD_FOR LPAREN KEYWORD_VAR variable_declaration_list_no_in SEMICOLON
+                                                                                                               option(expression)
+                                                                                                               SEMICOLON option(expression) RPAREN statement {Js_type.Jstm_for_dec($4, $6, $8, $10)}
+                                                                                                           |KEYWORD_FOR LPAREN left_hand_side_expression KEYWORD_IN expression RPAREN statement {
+                                                                                                             Js_type.Jstm_for_in($3, $5, $7)}
+                                                                                                           |KEYWORD_FOR LPAREN KEYWORD_VAR variable_declaration_no_in KEYWORD_IN expression RPAREN statement {
+                                                                                                             Js_type.Jstm_for_in_dec($4, $6, $8)}
   ;
 
   continue_statement:
     KEYWORD_CONTINUE SEMICOLON {Js_type.Jstm_continue(None)}
-        |KEYWORD_CONTINUE identifier SEMICOLON {Js_type.Jstm_continue(Some($2))}
+                                                                                                           |KEYWORD_CONTINUE identifier SEMICOLON {Js_type.Jstm_continue(Some($2))}
   ;
 
   break_statement:
     KEYWORD_BREAK SEMICOLON {Js_type.Jstm_break(None)}
-        |KEYWORD_BREAK identifier SEMICOLON {Js_type.Jstm_break(Some($2))}
+                                                                                                           |KEYWORD_BREAK identifier SEMICOLON {Js_type.Jstm_break(Some($2))}
   ;
 
   return_statement:
     KEYWORD_RETURN SEMICOLON {Js_type.Jstm_return (None)}
-        |KEYWORD_RETURN expression SEMICOLON {Js_type.Jstm_return(Some($2))}
+                                                                                                           |KEYWORD_RETURN expression SEMICOLON {Js_type.Jstm_return(Some($2))}
   ;
 
   with_statement:
@@ -542,7 +538,7 @@
 
   case_block:
     LCBRACE list(case_clause) RCBRACE {$2}
-        |LCBRACE list(case_clause) default_clause list(case_clause) RCBRACE {$2 @ [$3] @ $4}
+                                                                                                           |LCBRACE list(case_clause) default_clause list(case_clause) RCBRACE {$2 @ [$3] @ $4}
   ;
 
   case_clause:
@@ -563,8 +559,8 @@
 
   try_statement:
     KEYWORD_TRY block catch {Js_type.Jstm_try($2, Some($3), None)}
-        |KEYWORD_TRY block finally {Js_type.Jstm_try($2, None, Some($3))}
-        |KEYWORD_TRY block catch finally {Js_type.Jstm_try($2, Some($3), Some($4))}
+                                                                                                           |KEYWORD_TRY block finally {Js_type.Jstm_try($2, None, Some($3))}
+                                                                                                           |KEYWORD_TRY block catch finally {Js_type.Jstm_try($2, Some($3), Some($4))}
   ;
 
   catch:
@@ -648,98 +644,15 @@
     NULL {Js_type.Jl_null}
        |TRUE {Js_type.Jl_bool(true)}
        |FALSE {Js_type.Jl_bool(false)}
-       |string {$1}
+       |STRING {Js_type.Jl_string($1, $1)}
        |numeric_literal {$1}
-  ;
-
-  string:
-    DOUBLE_QUOTE DOUBLE_QUOTE  { Js_type.Jl_string("\"\"", "") }
-       | SINGLE_QUOTE SINGLE_QUOTE  { Js_type.Jl_string("''", "") }
-       | DOUBLE_QUOTE double_chars DOUBLE_QUOTE  { Js_type.Jl_string(Printf.sprintf "\"%s\"" $2, $2) }
-       | SINGLE_QUOTE single_chars SINGLE_QUOTE  { Js_type.Jl_string(Printf.sprintf "'%s'" $2, $2 )}
-  ;
-
-  double_chars:
-    double_char  { $1 }
-       | double_char double_chars { $1 ^ $2 }
-  ;
-
-  single_chars:
-    single_char  { $1 }
-       | single_char single_chars { $1 ^ $2 }
-  ;
-
-  punctuator_chars:
-    DOLLAR {"$"}
-       |UNDERSCORE {"_"}
-       |LCBRACE {"{"}
-       |LPAREN {"("}
-       |LBRACE {"["}
-       |RCBRACE {"}"}
-       |RPAREN {")"}
-       |RBRACE {"]"}
-       |COLON {":"}
-       |SEMICOLON {";"}
-       |COMMA {","}
-       |MINUS {"-"}
-       |PLUS {"+"}
-       |LESS {"<"}
-       |GREATER {">"}
-       |LESS_THAN {"<="}
-       |GREATER_THAN {">="}
-       |EQUAL {"=="}
-       |NOT_EQUAL {"!="}
-       |DEEP_EQUAL {"==="}
-       |DEEP_NOT_EQUAL {"!=="}
-       |MULTI {"*"}
-       |MOD {"%"}
-       |INCREMENT {"++"}
-       |DECREMENT {"--"}
-       |LSHIFT {"<<"}
-       |RSHIFT {">>"}
-       |AND {"&"}
-       |OR {"|"}
-       |XOR {"^"}
-       |NOT {"!"}
-       |COMP {"~"}
-       |LOGICAL_AND {"&&"}
-       |LOGICAL_OR {"||"}
-       |QUESTION {"?"}
-       |ASSIGN {"="}
-       |PLUS_ASSIGN {"+="}
-       |MINUS_ASSIGN {"-="}
-       |MULTI_ASSIGN {"*="}
-       |MOD_ASSIGN {"%="}
-       |LSHIFT_ASSIGN {"<<="}
-       |RSHIFT_ASSIGN {">>="}
-       |AND_ASSIGN {"&="}
-       |OR_ASSIGN {"|="}
-       |XOR_ASSIGN {"^="}
-       |DIV {"/"}
-       |DIV_ASSIGN {"/="}
-  ;
-
-  double_char:
-    CONTROL_CHAR   { $1 }
-       | DIGIT         { $1 }
-       | EXP           { Char.escaped($1) }
-       | CHAR          { Char.escaped($1) }
-       | punctuator_chars {$1}
-  ;
-
-  single_char:
-    SINGLE_CONTROL_CHAR   { $1 }
-       | DIGIT         { $1 }
-       | EXP           { Char.escaped($1) }
-       | punctuator_chars {$1}
-       | CHAR          { Char.escaped($1) }
   ;
 
   numeric_literal:
     DECIMAL_LITERAL {Js_type.Jl_number($1, $1)}
        |HEX_DIGIT {Js_type.Jl_number($1, $1)}
   ;
-  
+
   tok_minus: MINUS {"-"};
   tok_plus: PLUS {"+"};
   tok_less: LESS {"<"};
