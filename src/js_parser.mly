@@ -31,12 +31,9 @@
 %token <string> IDENT
 %token <string> HEX_DIGIT
 %token <string> DECIMAL_LITERAL
-%token <string> DIGIT
 %token <string> MULTI_LINE_COMMENT
 %token <string> SINGLE_LINE_COMMENT
 %token TRUE FALSE NULL
-%token DOLLAR UNDERSCORE
-%token <char> CHAR
 %token <string> STRING
 %token EOF
 %start parser_main
@@ -100,7 +97,7 @@ EOF {None}
   ;
 
   property_name:
-    identifier_name {Js_type.Jexp_ident ($1)}
+    identifier {$1}
    |STRING {Js_type.Jexp_literal(Js_type.Jl_string($1, $1))}
    |numeric_literal {Js_type.Jexp_literal($1)}
   ;
@@ -423,6 +420,7 @@ EOF {None}
   statement:
     block                {$1}
                                                                                                            |variable_statement   {$1}
+                                                                                                           |comment {$1}
                                                                                                            |empty_statement      {$1}
                                                                                                            |expression_statement {$1}
                                                                                                            |if_statement         {$1}
@@ -437,18 +435,19 @@ EOF {None}
                                                                                                            |try_statement        {$1}
                                                                                                            |debugger_statement   {$1}
   ;
-  statement_no_else:
+  statement_no_if:
     block                {$1}
+                                                                                                           |comment {$1}
                                                                                                            |variable_statement   {$1}
                                                                                                            |empty_statement      {$1}
                                                                                                            |expression_statement {$1}
-                                                                                                           |if_statement_no_else         {$1}
-                                                                                                           |iteration_statement  {$1}
+                                                                                                           |if_statement_no_if         {$1}
+                                                                                                           |iteration_statement_no_if  {$1}
                                                                                                            |continue_statement   {$1}
                                                                                                            |break_statement      {$1}
                                                                                                            |return_statement     {$1}
-                                                                                                           |with_statement       {$1}
-                                                                                                           |labelled_statement   {$1}
+                                                                                                           |with_statement_no_if       {$1}
+                                                                                                           |labelled_statement_no_if {$1}
                                                                                                            |switch_statement     {$1}
                                                                                                            |throw_statement      {$1}
                                                                                                            |try_statement        {$1}
@@ -488,14 +487,18 @@ EOF {None}
   ;
 
   if_statement:
-    KEYWORD_IF LPAREN expression RPAREN statement_no_else else_statement {Js_type.Jstm_if($3, $5, Some($6))}
+    KEYWORD_IF LPAREN expression RPAREN statement_no_if option(else_statement) {Js_type.Jstm_if($3, $5, $6)}
   ;
 
-  if_statement_no_else:
-    KEYWORD_IF LPAREN expression RPAREN statement_no_else {Js_type.Jstm_if($3, $5, None)}
+  if_statement_no_if:
+    KEYWORD_IF LPAREN expression RPAREN statement_no_if else_statement_no_if {Js_type.Jstm_if($3, $5, None)}
+  ;
 
-    else_statement:
+  else_statement:
     KEYWORD_ELSE statement {$2}
+  ;
+  else_statement_no_if:
+    KEYWORD_ELSE statement_no_if {$2}
   ;
 
   iteration_statement:
@@ -510,6 +513,20 @@ EOF {None}
                                                                                                            |KEYWORD_FOR LPAREN left_hand_side_expression KEYWORD_IN expression RPAREN statement {
                                                                                                              Js_type.Jstm_for_in($3, $5, $7)}
                                                                                                            |KEYWORD_FOR LPAREN KEYWORD_VAR variable_declaration_no_in KEYWORD_IN expression RPAREN statement {
+                                                                                                             Js_type.Jstm_for_in_dec($4, $6, $8)}
+  ;
+  iteration_statement_no_if:
+    KEYWORD_DO statement_no_if KEYWORD_WHILE LPAREN expression RPAREN SEMICOLON {Js_type.Jstm_do_while($5, $2)}
+                                                                                                           |KEYWORD_WHILE LPAREN expression RPAREN statement_no_if {Js_type.Jstm_while($3, $5)}
+                                                                                                           |KEYWORD_FOR LPAREN option(expression_no_in) SEMICOLON
+                                                                                                               option(expression)
+                                                                                                               SEMICOLON option(expression) RPAREN statement_no_if {Js_type.Jstm_for($3, $5, $7, $9)}
+                                                                                                           |KEYWORD_FOR LPAREN KEYWORD_VAR variable_declaration_list_no_in SEMICOLON
+                                                                                                               option(expression)
+                                                                                                               SEMICOLON option(expression) RPAREN statement_no_if {Js_type.Jstm_for_dec($4, $6, $8, $10)}
+                                                                                                           |KEYWORD_FOR LPAREN left_hand_side_expression KEYWORD_IN expression RPAREN statement_no_if {
+                                                                                                             Js_type.Jstm_for_in($3, $5, $7)}
+                                                                                                           |KEYWORD_FOR LPAREN KEYWORD_VAR variable_declaration_no_in KEYWORD_IN expression RPAREN statement_no_if {
                                                                                                              Js_type.Jstm_for_in_dec($4, $6, $8)}
   ;
 
@@ -531,6 +548,9 @@ EOF {None}
   with_statement:
     KEYWORD_WITH LPAREN expression RPAREN statement {Js_type.Jstm_with($3, $5)}
   ;
+  with_statement_no_if:
+    KEYWORD_WITH LPAREN expression RPAREN statement_no_if {Js_type.Jstm_with($3, $5)}
+  ;
 
   switch_statement:
     KEYWORD_SWITCH LPAREN expression RPAREN case_block {Js_type.Jstm_switch($3, $5)}
@@ -551,6 +571,9 @@ EOF {None}
 
   labelled_statement:
     identifier COLON statement {Js_type.Jstm_labelled ($1, $3)}
+  ;
+  labelled_statement_no_if:
+    identifier COLON statement_no_if {Js_type.Jstm_labelled ($1, $3)}
   ;
 
   throw_statement:
@@ -587,7 +610,7 @@ EOF {None}
 
   function_expression:
     KEYWORD_FUNCTION id=option(identifier) LPAREN ls=formal_parameters RPAREN LCBRACE body=function_body RCBRACE {
-      Js_type.Jexp_function (None, ls, Js_type.Jstm_block(body))
+      Js_type.Jexp_function (id, ls, Js_type.Jstm_block(body))
     }
   ;
 
@@ -611,7 +634,6 @@ EOF {None}
   source_element:
     statement {$1}
        |function_declaration {Js_type.Jstm_function($1)}
-       |comment {$1}
   ;
 
   program:
@@ -620,25 +642,7 @@ EOF {None}
 
   (* --- Programs and functions grammer *)
 
-  identifier:
-    IDENT {Js_type.Jexp_ident($1)}
-  ;
-
-  identifier_name:
-    identifier_start {$1}
-       |identifier_name identifier_part {$1 ^ $2}
-  ;
-
-  identifier_start:
-    CHAR          { Char.escaped($1) }
-       | UNDERSCORE   { "_" }
-       | DOLLAR   { "$" }
-  ;
-
-  identifier_part:
-    identifier_start {$1}
-       | DIGIT  { $1 }
-  ;
+  identifier: IDENT {Js_type.Jexp_ident($1)} ;
 
   literal:
     NULL {Js_type.Jl_null}

@@ -67,7 +67,13 @@ and dec_to_json = function
   | T.Jdec_var (e, init) ->
      ast "VariableDeclarator" [("id", exp_to_json e);
                                ("init", or_else exp_to_json init)]
-  | _ -> failwith "not implemented declaration"
+  | T.Jdec_function (e, args, stmt) ->
+     ast "FunctionDeclaration" [("id", exp_to_json e);
+                                ("params", J.Array (List.map ~f:exp_to_json args));
+                                ("defaults", J.Array []);
+                                ("body", statement_to_json stmt);
+                                ("generator", J.Bool false);
+                                ("expression", J.Bool false)]
 
 (* Statement module to serialize abstract syntax tree *)
 

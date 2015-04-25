@@ -20,43 +20,43 @@
     | Some ary -> ary
 
   let to_keyword = function
-    |  "this"  ->  KEYWORD_THIS 
-    |  "get"  ->  KEYWORD_GET 
-    |  "set"  ->  KEYWORD_SET 
-    |  "new"  ->  KEYWORD_NEW 
-    |  "in"  ->  KEYWORD_IN 
-    |  "instanceof"  ->  KEYWORD_INSTANCEOF 
-    |  "delete"  ->  KEYWORD_DELETE 
-    |  "typeof"  ->  KEYWORD_TYPEOF 
-    |  "function"  ->  KEYWORD_FUNCTION 
-    |  "void"  ->  KEYWORD_VOID 
-    |  "var"  ->  KEYWORD_VAR 
-    |  "if"  ->  KEYWORD_IF 
-    |  "else"  ->  KEYWORD_ELSE 
-    |  "do"  ->  KEYWORD_DO 
-    |  "while"  ->  KEYWORD_WHILE 
-    |  "for"  ->  KEYWORD_FOR 
-    |  "continue"  ->  KEYWORD_CONTINUE 
-    |  "break"  ->  KEYWORD_BREAK 
-    |  "return"  ->  KEYWORD_RETURN 
-    |  "with"  ->  KEYWORD_WITH 
-    |  "switch"  ->  KEYWORD_SWITCH 
-    |  "case"  ->  KEYWORD_CASE 
-    |  "default"  ->  KEYWORD_DEFAULT 
-    |  "throw"  ->  KEYWORD_THROW 
-    |  "try"  ->  KEYWORD_TRY 
-    |  "catch"  ->  KEYWORD_CATCH 
-    |  "finally"  ->  KEYWORD_FINALLY 
+    |  "this"  ->  KEYWORD_THIS
+    |  "get"  ->  KEYWORD_GET
+    |  "set"  ->  KEYWORD_SET
+    |  "new"  ->  KEYWORD_NEW
+    |  "in"  ->  KEYWORD_IN
+    |  "instanceof"  ->  KEYWORD_INSTANCEOF
+    |  "delete"  ->  KEYWORD_DELETE
+    |  "typeof"  ->  KEYWORD_TYPEOF
+    |  "function"  ->  KEYWORD_FUNCTION
+    |  "void"  ->  KEYWORD_VOID
+    |  "var"  ->  KEYWORD_VAR
+    |  "if"  ->  KEYWORD_IF
+    |  "else"  ->  KEYWORD_ELSE
+    |  "do"  ->  KEYWORD_DO
+    |  "while"  ->  KEYWORD_WHILE
+    |  "for"  ->  KEYWORD_FOR
+    |  "continue"  ->  KEYWORD_CONTINUE
+    |  "break"  ->  KEYWORD_BREAK
+    |  "return"  ->  KEYWORD_RETURN
+    |  "with"  ->  KEYWORD_WITH
+    |  "switch"  ->  KEYWORD_SWITCH
+    |  "case"  ->  KEYWORD_CASE
+    |  "default"  ->  KEYWORD_DEFAULT
+    |  "throw"  ->  KEYWORD_THROW
+    |  "try"  ->  KEYWORD_TRY
+    |  "catch"  ->  KEYWORD_CATCH
+    |  "finally"  ->  KEYWORD_FINALLY
     |  "debugger"  ->  KEYWORD_DEBUGGER
     |  "null"  ->  NULL
     | "true" -> TRUE
     | "false" -> FALSE
     | s -> failwith ("Unknown keyword: " ^ s)
 }
-let line_terminator = ['\n' '\r'] | "\r\n" | "\x20\x28" | "\x20\x29"
+let line_terminator = ['\n' '\r'] | "\r\n" | "\xe2\x80\xa8" |"\xe2\x80\xa9" 
 let white_space = [' ' '\t' '\x0b' '\x0c' '\xa0']
 let identifier_start = ['a'-'z' 'A'-'Z'] | '$' | '_'
-let decimal_integer_literal = '0' | (['1'-'9'] ['0'-'9']*) 
+let decimal_integer_literal = '0' | (['1'-'9'] ['0'-'9']*)
 let exponent_part = ['e' 'E'] ['-' '+']? ['0'-'9']+
   let reserved_word = "true" | "false" | "null" | "this" | "get" | "set" | "new"
     | "in" | "instanceof" | "delete" | "typeof" | "function" | "void"
@@ -67,10 +67,9 @@ let exponent_part = ['e' 'E'] ['-' '+']? ['0'-'9']+
 
         (* Json Tokens *)
         rule token = parse
+    | white_space {token lexbuf}
     | "/*" { multi_line_comment "" lexbuf}
     | "//" { single_line_comment "" lexbuf}
-    | '$' { DOLLAR }
-    | '_' { UNDERSCORE }
     | '{' { LCBRACE }
     | '(' { LPAREN }
     | '[' { LBRACE }
@@ -124,7 +123,6 @@ let exponent_part = ['e' 'E'] ['-' '+']? ['0'-'9']+
     | '"' { string_parse "" lexbuf}
     | '\'' { single_string_parse "" lexbuf }
     | eof  {EOF}
-    | [' ' '\t' '\x0b' '\x0c' '\xa0'] { token lexbuf}
     | line_terminator {next_line lexbuf; token lexbuf}
     | reserved_word { to_keyword (Lexing.lexeme lexbuf)}
     | identifier_start (identifier_start | ['0'-'9'])* as ident {IDENT(ident)}
@@ -142,8 +140,10 @@ let exponent_part = ['e' 'E'] ['-' '+']? ['0'-'9']+
       | [^ '*'] _* "*/" as comment {
         let terminators = line_terminators_in_text comment in
         Array.iter (fun _ -> next_line lexbuf) terminators;
+                Printf.printf "%s" comment;
+
         MULTI_LINE_COMMENT(comment)}
-      | '*' [^ '*' '/']* "*/" as comment {
+      | '*' [^ '*' '/']*? "*/" as comment {
         let terminators = line_terminators_in_text comment in
         Array.iter (fun _ -> next_line lexbuf) terminators;
         MULTI_LINE_COMMENT(comment)
