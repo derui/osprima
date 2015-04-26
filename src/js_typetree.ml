@@ -20,8 +20,12 @@ let rec literal_to_json = function
 and exp_to_json = function
   | T.Jexp_ident ident -> ast "Identifier" [("name", J.String ident)]
   | T.Jexp_this -> ast "ThisExpression" []
-  | T.Jexp_sequence sequence ->  ast "SequenceExpression" [
-    ("expressions", J.Array (List.map ~f:exp_to_json sequence))]
+  | T.Jexp_sequence sequence -> begin
+     match sequence with
+     | [] -> J.Null
+     | [exp] -> exp_to_json exp
+     | _ -> ast "SequenceExpression" [("expressions", J.Array (List.map ~f:exp_to_json sequence))]
+  end
   | T.Jexp_literal lit -> literal_to_json lit
   | T.Jexp_array ary -> ast "ArrayExpression" [("elements", J.Array (List.map ~f:exp_to_json ary))]
   | T.Jexp_object pairs -> ast "ObjectExpression" [
