@@ -6,6 +6,11 @@
   let opt_to_string = function
     | None -> ""
     | Some s -> s
+
+  let quot_to_string = function
+    | Js_type.Sq_single -> "'"
+    | Js_type.Sq_double -> "\""
+
 %}
 
 (* punctuators *)
@@ -34,7 +39,7 @@
 %token <string> MULTI_LINE_COMMENT
 %token <string> SINGLE_LINE_COMMENT
 %token TRUE FALSE NULL
-%token <string> STRING
+%token <string * Js_type.string_quotation> STRING
 %token EOF
 %start parser_main
 %type <Js_type.program option> parser_main
@@ -98,7 +103,9 @@ EOF {None}
 
   property_name:
     identifier {$1}
-   |STRING {Js_type.Jexp_literal(Js_type.Jl_string($1, $1))}
+   |str=STRING {let str, quot = str in
+                let quot = quot_to_string quot in
+                Js_type.Jexp_literal(Js_type.Jl_string(quot ^ str ^ quot, str))}
    |numeric_literal {Js_type.Jexp_literal($1)}
   ;
 
@@ -648,7 +655,9 @@ EOF {None}
     NULL {Js_type.Jl_null}
        |TRUE {Js_type.Jl_bool(true)}
        |FALSE {Js_type.Jl_bool(false)}
-       |STRING {Js_type.Jl_string($1, $1)}
+       |str=STRING {let str, quot = str in
+                    let quot = quot_to_string quot in
+                    Js_type.Jl_string(quot ^ str ^ quot, str)}
        |numeric_literal {$1}
   ;
 

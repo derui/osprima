@@ -1,5 +1,6 @@
 open CamomileLibrary
 
+type string_quotation = Sq_single | Sq_double
 (* Literals *)
 type literal =
   | Jl_null

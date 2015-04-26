@@ -9,6 +9,10 @@ let or_else f = function
   | None -> J.Null
   | Some v -> f v
 
+let ignore_null = function
+  | J.Null -> false
+  | _ -> true
+
 let literal v lit = ast "Literal" [("value", v);("raw", J.String lit)]
 
 let rec literal_to_json = function
@@ -21,17 +25,17 @@ and exp_to_json = function
   | T.Jexp_ident ident -> ast "Identifier" [("name", J.String ident)]
   | T.Jexp_this -> ast "ThisExpression" []
   | T.Jexp_sequence sequence -> begin
-     match sequence with
-     | [] -> J.Null
-     | [exp] -> exp_to_json exp
-     | _ -> ast "SequenceExpression" [("expressions", J.Array (List.map ~f:exp_to_json sequence))]
+    match sequence with
+    | [] -> J.Null
+    | [exp] -> exp_to_json exp
+    | _ -> ast "SequenceExpression" [("expressions", J.Array (List.map ~f:exp_to_json sequence))]
   end
   | T.Jexp_literal lit -> literal_to_json lit
   | T.Jexp_array ary -> ast "ArrayExpression" [("elements", J.Array (List.map ~f:exp_to_json ary))]
   | T.Jexp_object pairs -> ast "ObjectExpression" [
     ("properties", J.Array(List.map ~f:exp_to_json pairs))]
   | T.Jexp_property (key, v) -> ast "Property" [("key", exp_to_json key);
-                                                ("computed", J.Bool true);
+                                                ("computed", J.Bool false);
                                                 ("value", exp_to_json v);
                                                 ("kind", J.String "init");
                                                 ("method", J.Bool false);
@@ -82,7 +86,8 @@ and dec_to_json = function
 (* Statement module to serialize abstract syntax tree *)
 
 and statement_to_json = function
-  | T.Jstm_var decs -> ast "VariableDeclaration" [("declarations", J.Array (List.map ~f:dec_to_json decs))]
+  | T.Jstm_var decs -> ast "VariableDeclaration" [("declarations", J.Array (List.map ~f:dec_to_json decs));
+                                                  ("kind", J.String "var")]
   | T.Jstm_empty -> ast "EmptyStatement" []
   | T.Jstm_if (cond, stmt, alternate) ->
      let alternate = match alternate with
@@ -118,7 +123,7 @@ and statement_to_json = function
                            ("body", statement_to_json stmt);
                            ("each", J.Bool false)]
   | T.Jstm_block stmt ->
-     ast "BlockStatement" [("body", J.Array(List.map ~f:statement_to_json stmt))]
+     ast "BlockStatement" [("body", J.Array(List.map ~f:statement_to_json stmt |> List.filter ~f:ignore_null))]
   | T.Jstm_continue e ->
      ast "ContinueStatement" [("label", or_else exp_to_json e)]
   | T.Jstm_break e ->
@@ -149,7 +154,7 @@ and statement_to_json = function
   | T.Jstm_comment_line _ -> J.Null
 and case_to_json = function
   | T.Jcas_case (e, stmt) -> ast "SwitchCase" [("test", or_else exp_to_json e);
-                                               ("consequent", J.Array(List.map ~f:statement_to_json stmt))]
+                                               ("consequent", J.Array(List.map ~f:statement_to_json stmt |> List.filter ~f:ignore_null))]
 and catch_to_json = function
   | T.Jstm_catch (e, stmt) -> ast "CatchClause" [("param", exp_to_json e);
                                                  ("body", statement_to_json stmt)]
@@ -160,10 +165,6 @@ let program stmt = J.Object [("type", J.String "Program"); ("body", stmt)]
 
 let program_to_json = function
   | T.Jprog_program stmt -> begin
-     let ignore_null = function
-       | J.Null -> false
-       | _ -> true
-     in
-     let stmt = List.map ~f:statement_to_json stmt |> List.filter ~f:ignore_null in
-     program (J.Array stmt)
+    let stmt = List.map ~f:statement_to_json stmt |> List.filter ~f:ignore_null in
+    program (J.Array stmt)
   end

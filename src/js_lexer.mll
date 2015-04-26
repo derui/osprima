@@ -149,6 +149,6 @@ let exponent_part = ['e' 'E'] ['-' '+']? ['0'-'9']+
         MULTI_LINE_COMMENT(comment)
       }
   and string_parse buf = parse
-    [^ '"']* '"' as str {STRING(str)}
+    [^ '"']* as str '"' {STRING(str, Js_type.Sq_double)}
   and single_string_parse buf = parse
-    [^ '\'']* '\'' as str {STRING(str)}
+    [^ '\'']* as str '\'' {STRING(str, Js_type.Sq_double)}
