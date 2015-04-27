@@ -8,7 +8,7 @@
   let next_line lexbuf = Lexing.new_line lexbuf
 
   let has_line_terminator text =
-    let regexp = UReStr.regexp ".*\\(\r\\|\n\\|\r\n\\|\x20\x28\\|\x20\x29\\)" in
+    let regexp = UReStr.regexp "\\(\r\\|\n\\|\r\n\\|\x20\x28\\|\x20\x29\\)" in
     let regexp = R.compile regexp in
     R.string_match regexp text 0
 
@@ -58,6 +58,11 @@ let white_space = [' ' '\t' '\x0b' '\x0c' '\xa0']
 let identifier_start = ['a'-'z' 'A'-'Z'] | '$' | '_'
 let decimal_integer_literal = '0' | (['1'-'9'] ['0'-'9']*)
 let exponent_part = ['e' 'E'] ['-' '+']? ['0'-'9']+
+  let multi_line_not_asterisk_char = [^ '*']
+let multi_line_not_forward_slash_or_asterisk_char = [^ '*' '/']
+let reg_first_char = ([^'\\' '/' '[' '\r' '\n'] | ('[' [^']' '\\' '\r' '\n']* ']') | '\\' [^'\n' '\r'])
+let reg_char = ([^'*' '\\' '/' '[' '\r' '\n'] | '[' [^']' '\\' '\r' '\n']* ']' | '\\' [^'\n' '\r'])
+    
   let reserved_word = "true" | "false" | "null" | "this" | "get" | "set" | "new"
     | "in" | "instanceof" | "delete" | "typeof" | "function" | "void"
     | "var" | "if" | "else" | "do" | "while"
@@ -67,8 +72,9 @@ let exponent_part = ['e' 'E'] ['-' '+']? ['0'-'9']+
 
         (* Json Tokens *)
         rule token = parse
+    | eof {EOF}
     | white_space {token lexbuf}
-    | "/*" { multi_line_comment "" lexbuf}
+    | "/*" '*'* ([^ '/' '*'] [^ '*']* '*'*)* "*/" { token lexbuf}
     | "//" { single_line_comment "" lexbuf}
     | '{' { LCBRACE }
     | '(' { LPAREN }
@@ -114,6 +120,9 @@ let exponent_part = ['e' 'E'] ['-' '+']? ['0'-'9']+
     | "|=" {OR_ASSIGN}
     | "^=" {XOR_ASSIGN}
     | '/' {DIV}
+    | '/' ((reg_first_char? reg_char*) as reg) '/' ((identifier_start | ['0'-'9'])* as flag) {
+      REGEXP(reg, flag)
+    }
     | "/=" {DIV_ASSIGN}
     | decimal_integer_literal exponent_part? as digit { DECIMAL_LITERAL(digit)}
     | decimal_integer_literal '.' ['0'-'9']* exponent_part? as digit { DECIMAL_LITERAL(digit)}
@@ -128,25 +137,14 @@ let exponent_part = ['e' 'E'] ['-' '+']? ['0'-'9']+
     | identifier_start (identifier_start | ['0'-'9'])* as ident {IDENT(ident)}
 
   and single_line_comment buf = parse
+      | line_terminator {token lexbuf}
       | _ {
         let buf = buf ^ (Lexing.lexeme lexbuf) in
         if has_line_terminator buf then begin
           next_line lexbuf;
-          SINGLE_LINE_COMMENT(buf)
+          token lexbuf
         end
         else single_line_comment buf lexbuf
-      }
-  and multi_line_comment buf = parse
-      | [^ '*'] _* "*/" as comment {
-        let terminators = line_terminators_in_text comment in
-        Array.iter (fun _ -> next_line lexbuf) terminators;
-                Printf.printf "%s" comment;
-
-        MULTI_LINE_COMMENT(comment)}
-      | '*' [^ '*' '/']*? "*/" as comment {
-        let terminators = line_terminators_in_text comment in
-        Array.iter (fun _ -> next_line lexbuf) terminators;
-        MULTI_LINE_COMMENT(comment)
       }
   and string_parse buf = parse
     [^ '"']* as str '"' {STRING(str, Js_type.Sq_double)}

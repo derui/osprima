@@ -7,6 +7,7 @@ type literal =
   | Jl_bool of bool
   | Jl_string of UTF8.t * UTF8.t
   | Jl_number of UTF8.t * UTF8.t
+  | Jl_regex of UTF8.t * UTF8.t
 
 (* Expressions *)
 and expression =

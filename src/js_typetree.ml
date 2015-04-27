@@ -14,12 +14,18 @@ let ignore_null = function
   | _ -> true
 
 let literal v lit = ast "Literal" [("value", v);("raw", J.String lit)]
+let regexp regex flag = ast "Literal" [("value", J.String ("/" ^ regex ^ "/" ^ flag));
+                                       ("raw", J.String ("/" ^ regex ^ "/" ^ flag));
+                                       ("regex", J.Object ([("pattern", J.String regex);
+                                                            ("flags", J.String flag)]))
+                                      ]
 
 let rec literal_to_json = function
   | T.Jl_null -> literal J.Null "null"
   | T.Jl_bool b -> literal (J.Bool b) (string_of_bool b)
   | T.Jl_string (raw, s) -> literal (J.String s) raw
   | T.Jl_number (raw, n) -> literal (J.Number n) raw
+  | T.Jl_regex (regex, flags) -> regexp regex flags
 
 and exp_to_json = function
   | T.Jexp_ident ident -> ast "Identifier" [("name", J.String ident)]

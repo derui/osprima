@@ -34,10 +34,9 @@
 (* %token <string> LINE_TERMINATOR *)
 
 %token <string> IDENT
+%token <string * string> REGEXP
 %token <string> HEX_DIGIT
 %token <string> DECIMAL_LITERAL
-%token <string> MULTI_LINE_COMMENT
-%token <string> SINGLE_LINE_COMMENT
 %token TRUE FALSE NULL
 %token <string * Js_type.string_quotation> STRING
 %token EOF
@@ -427,7 +426,6 @@ EOF {None}
   statement:
     block                {$1}
                                                                                                            |variable_statement   {$1}
-                                                                                                           |comment {$1}
                                                                                                            |empty_statement      {$1}
                                                                                                            |expression_statement {$1}
                                                                                                            |if_statement         {$1}
@@ -444,7 +442,6 @@ EOF {None}
   ;
   statement_no_if:
     block                {$1}
-                                                                                                           |comment {$1}
                                                                                                            |variable_statement   {$1}
                                                                                                            |empty_statement      {$1}
                                                                                                            |expression_statement {$1}
@@ -659,6 +656,8 @@ EOF {None}
                     let quot = quot_to_string quot in
                     Js_type.Jl_string(quot ^ str ^ quot, str)}
        |numeric_literal {$1}
+       |REGEXP {let regex, flag = $1 in
+                Js_type.Jl_regex(regex, flag)}
   ;
 
   numeric_literal:
@@ -707,7 +706,3 @@ EOF {None}
   keyword_instanceof: KEYWORD_INSTANCEOF {"instanceof"};
   keyword_typeof: KEYWORD_TYPEOF {"typeof"};
 
-  comment:
-    MULTI_LINE_COMMENT {Js_type.Jstm_comment_block ($1)}
-       |SINGLE_LINE_COMMENT {Js_type.Jstm_comment_line ($1)}
-  ;
