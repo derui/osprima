@@ -627,7 +627,8 @@ EOF {None}
   ;
 
   function_body:
-    source_elements {$1}
+    {[]}
+       |source_elements {$1}
   ;
 
   source_elements:

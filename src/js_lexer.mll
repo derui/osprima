@@ -8,12 +8,12 @@
   let next_line lexbuf = Lexing.new_line lexbuf
 
   let has_line_terminator text =
-    let regexp = UReStr.regexp "\\(\r\\|\n\\|\r\n\\|\x20\x28\\|\x20\x29\\)" in
+    let regexp = UReStr.regexp "\\(\r\\|\n\\|\r\n\\|\xe2\x80\xa8\\|\xe2\x80\xa9\\)" in
     let regexp = R.compile regexp in
     R.string_match regexp text 0
 
   let line_terminators_in_text text =
-    let regexp = UReStr.regexp "\\(\r\\|\n\\|\r\n\\|\x20\x28\\|\x20\x29\\)" in
+    let regexp = UReStr.regexp "\\(\r\\|\n\\|\r\n\\|\xe2\x80\xa8\\|\xe2\x80\xa9\\)" in
     let regexp = R.compile regexp in
     match R.regexp_match regexp text 0 with
     | None -> [||]
@@ -74,7 +74,11 @@ let reg_char = ([^'*' '\\' '/' '[' '\r' '\n'] | '[' [^']' '\\' '\r' '\n']* ']' |
         rule token = parse
     | eof {EOF}
     | white_space {token lexbuf}
-    | "/*" '*'* ([^ '/' '*'] [^ '*']* '*'*)* "*/" { token lexbuf}
+    | "/*" '*'* ([^ '/' '*'] [^ '*']* '*'*)* as comment "*/" {
+      let lines = line_terminators_in_text comment in
+      Array.iter (fun _ -> next_line lexbuf) lines;
+      token lexbuf
+    }
     | "//" { single_line_comment "" lexbuf}
     | '{' { LCBRACE }
     | '(' { LPAREN }
@@ -120,7 +124,7 @@ let reg_char = ([^'*' '\\' '/' '[' '\r' '\n'] | '[' [^']' '\\' '\r' '\n']* ']' |
     | "|=" {OR_ASSIGN}
     | "^=" {XOR_ASSIGN}
     | '/' {DIV}
-    | '/' ((reg_first_char? reg_char*) as reg) '/' ((identifier_start | ['0'-'9'])* as flag) {
+    | '/' (reg_first_char reg_char* as reg) '/' ((identifier_start | ['0'-'9'])* as flag) {
       REGEXP(reg, flag)
     }
     | "/=" {DIV_ASSIGN}
@@ -137,7 +141,7 @@ let reg_char = ([^'*' '\\' '/' '[' '\r' '\n'] | '[' [^']' '\\' '\r' '\n']* ']' |
     | identifier_start (identifier_start | ['0'-'9'])* as ident {IDENT(ident)}
 
   and single_line_comment buf = parse
-      | line_terminator {token lexbuf}
+      | line_terminator {next_line lexbuf;token lexbuf}
       | _ {
         let buf = buf ^ (Lexing.lexeme lexbuf) in
         if has_line_terminator buf then begin
@@ -147,6 +151,6 @@ let reg_char = ([^'*' '\\' '/' '[' '\r' '\n'] | '[' [^']' '\\' '\r' '\n']* ']' |
         else single_line_comment buf lexbuf
       }
   and string_parse buf = parse
-    [^ '"']* as str '"' {STRING(str, Js_type.Sq_double)}
+    ("\\\"" | [^ '"'])* as str '"' {STRING(str, Js_type.Sq_double)}
   and single_string_parse buf = parse
-    [^ '\'']* as str '\'' {STRING(str, Js_type.Sq_double)}
+    ("\\'" | [^ '\''])* as str '\'' {STRING(str, Js_type.Sq_double)}
