@@ -60,8 +60,13 @@ let decimal_integer_literal = '0' | (['1'-'9'] ['0'-'9']*)
 let exponent_part = ['e' 'E'] ['-' '+']? ['0'-'9']+
   let multi_line_not_asterisk_char = [^ '*']
 let multi_line_not_forward_slash_or_asterisk_char = [^ '*' '/']
-let reg_first_char = ([^'\\' '/' '[' '\r' '\n'] | ('[' [^']' '\\' '\r' '\n']* ']') | '\\' [^'\n' '\r'])
-let reg_char = ([^'*' '\\' '/' '[' '\r' '\n'] | '[' [^']' '\\' '\r' '\n']* ']' | '\\' [^'\n' '\r'])
+let reg_backslash_sequence = '\\' [^'\n' '\r']
+let reg_first_char = ([^'\\' '/' '[' '\r' '\n'] | ('[' (reg_backslash_sequence | [^']' '\\' '\r' '\n'])* ']') | ('\\' [^'\n' '\r']))
+let reg_char = ([^ '\\' '/' '[' '\r' '\n'] | ('[' (reg_backslash_sequence | [^']' '\\' '\r' '\n'])* ']') | ('\\' [^'\n' '\r']))
+let hex_digit = ['0'-'9' 'a'-'f' 'A'-'F']
+let single_escape_sequence = (['\\' '"' '\'' 'b' 'f' 'n' 'r' 't' 'v'] | '0' |
+                              'x' hex_digit hex_digit |
+                              'u' hex_digit hex_digit hex_digit hex_digit)
     
   let reserved_word = "true" | "false" | "null" | "this" | "get" | "set" | "new"
     | "in" | "instanceof" | "delete" | "typeof" | "function" | "void"
@@ -124,14 +129,14 @@ let reg_char = ([^'*' '\\' '/' '[' '\r' '\n'] | '[' [^']' '\\' '\r' '\n']* ']' |
     | "|=" {OR_ASSIGN}
     | "^=" {XOR_ASSIGN}
     | '/' {DIV}
-    | '/' (reg_first_char reg_char* as reg) '/' ((identifier_start | ['0'-'9'])* as flag) {
+    | '/' (reg_first_char reg_char* as reg) '/' ((identifier_start? | ['0'-'9'])* as flag) {
       REGEXP(reg, flag)
     }
     | "/=" {DIV_ASSIGN}
+    | '0' ['x' 'X'] ['a'-'f' 'A'-'F' '0'-'9']+ as digit { HEX_DIGIT(digit) }
     | decimal_integer_literal exponent_part? as digit { DECIMAL_LITERAL(digit)}
     | decimal_integer_literal '.' ['0'-'9']* exponent_part? as digit { DECIMAL_LITERAL(digit)}
     | '.' ['0'-'9']+ exponent_part? as digit { DECIMAL_LITERAL(digit)}
-    | '0' ['x' 'X'] ['a'-'f' 'A'-'F' '0'-'9']+ as digit { HEX_DIGIT(digit) }
     | '.' { DOT }
     | '"' { string_parse "" lexbuf}
     | '\'' { single_string_parse "" lexbuf }
@@ -153,4 +158,4 @@ let reg_char = ([^'*' '\\' '/' '[' '\r' '\n'] | '[' [^']' '\\' '\r' '\n']* ']' |
   and string_parse buf = parse
     ("\\\"" | [^ '"'])* as str '"' {STRING(str, Js_type.Sq_double)}
   and single_string_parse buf = parse
-    ("\\'" | [^ '\''])* as str '\'' {STRING(str, Js_type.Sq_double)}
+    ("\\" single_escape_sequence | [^ '\'' '\\'])* as str '\'' {STRING(str, Js_type.Sq_double)}
