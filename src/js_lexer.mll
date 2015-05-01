@@ -84,7 +84,7 @@ let single_escape_sequence = (['\\' '"' '\'' 'b' 'f' 'n' 'r' 't' 'v'] | '0' |
       Array.iter (fun _ -> next_line lexbuf) lines;
       token lexbuf
     }
-    | "//" { single_line_comment "" lexbuf}
+    | "//" { single_line_comment (Buffer.create 1) lexbuf}
     | '{' { LCBRACE }
     | '(' { LPAREN }
     | '[' { LBRACE }
@@ -148,8 +148,8 @@ let single_escape_sequence = (['\\' '"' '\'' 'b' 'f' 'n' 'r' 't' 'v'] | '0' |
   and single_line_comment buf = parse
       | line_terminator {next_line lexbuf;token lexbuf}
       | _ {
-        let buf = buf ^ (Lexing.lexeme lexbuf) in
-        if has_line_terminator buf then begin
+        Buffer.add_string buf (Lexing.lexeme lexbuf);
+        if has_line_terminator (Buffer.contents buf) then begin
           next_line lexbuf;
           token lexbuf
         end

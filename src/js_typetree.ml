@@ -14,17 +14,41 @@ let ignore_null = function
   | _ -> true
 
 let literal v lit = ast "Literal" [("value", v);("raw", J.String lit)]
-let regexp regex flag = ast "Literal" [("value", J.String ("/" ^ regex ^ "/" ^ flag));
-                                       ("raw", J.String ("/" ^ regex ^ "/" ^ flag));
-                                       ("regex", J.Object ([("pattern", J.String regex);
-                                                            ("flags", J.String flag)]))
-                                      ]
+let regexp regex flag =
+  let buf = Buffer.create 1 in
+  Buffer.add_string buf "/";
+  Buffer.add_string buf regex;
+  Buffer.add_string buf "/";
+  Buffer.add_string buf flag;
+  let value = Buffer.contents buf in
+  ast "Literal" [("value", J.String (value));
+                 ("raw", J.String (value));
+                 ("regex", J.Object ([("pattern", J.String regex);
+                                      ("flags", J.String flag)]))
+                ]
+
+let hex_to_int = function
+  | c when '0' <= c && c <= '9' -> (Char.to_int c) - (Char.to_int '0')
+  | c when 'a' = c || c = 'A' -> 10
+  | c when 'b' = c || c = 'B' -> 11
+  | c when 'c' = c || c = 'C' -> 12
+  | c when 'd' = c || c = 'D' -> 13
+  | c when 'e' = c || c = 'E' -> 14
+  | c when 'f' = c || c = 'F' -> 15
+  | c -> failwith ("Unknown Hex charactor: " ^ (String.of_char c))
 
 let rec literal_to_json = function
   | T.Jl_null -> literal J.Null "null"
   | T.Jl_bool b -> literal (J.Bool b) (string_of_bool b)
   | T.Jl_string (raw, s) -> literal (J.String s) raw
   | T.Jl_number (raw, n) -> literal (J.Number n) raw
+  | T.Jl_hex_digit (raw) ->
+     let hex = String.sub raw 2 (String.length raw - 2) in
+     let num = String.foldi ~init:0 ~f:(fun index num c -> let i = hex_to_int c in
+                                  let i = i lsl ((succ index) * 4) in
+                                  num + i
+     ) hex in 
+     literal (J.Number (string_of_int num)) raw
   | T.Jl_regex (regex, flags) -> regexp regex flags
 
 and exp_to_json = function

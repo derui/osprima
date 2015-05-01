@@ -663,7 +663,7 @@ EOF {None}
 
   numeric_literal:
     DECIMAL_LITERAL {Js_type.Jl_number($1, $1)}
-       |HEX_DIGIT {Js_type.Jl_number($1, $1)}
+       |HEX_DIGIT {Js_type.Jl_hex_digit($1)}
   ;
 
   tok_minus: MINUS {"-"};
