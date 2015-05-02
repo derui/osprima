@@ -37,6 +37,7 @@ let hex_to_int = function
   | c when 'f' = c || c = 'F' -> 15
   | c -> failwith ("Unknown Hex charactor: " ^ (String.of_char c))
 
+(* converters *)
 let rec literal_to_json = function
   | T.Jl_null -> literal J.Null "null"
   | T.Jl_bool b -> literal (J.Bool b) (string_of_bool b)
@@ -44,9 +45,10 @@ let rec literal_to_json = function
   | T.Jl_number (raw, n) -> literal (J.Number n) raw
   | T.Jl_hex_digit (raw) ->
      let hex = String.sub raw 2 (String.length raw - 2) in
-     let num = String.foldi ~init:0 ~f:(fun index num c -> let i = hex_to_int c in
-                                  let i = i lsl ((succ index) * 4) in
-                                  num + i
+     let num = String.foldi ~init:0 ~f:(fun index num c ->
+       let i = hex_to_int c in
+       let i = i lsl ((succ index) * 4) in
+       num + i
      ) hex in 
      literal (J.Number (string_of_int num)) raw
   | T.Jl_regex (regex, flags) -> regexp regex flags
@@ -83,6 +85,9 @@ and exp_to_json = function
   | T.Jexp_binary (left, op, right) -> ast "BinaryExpression" [("operator", J.String op);
                                                                ("left", exp_to_json left);
                                                                ("right", exp_to_json right)]
+  | T.Jexp_logical (left, op, right) -> ast "LogicalExpression" [("operator", J.String op);
+                                                                 ("left", exp_to_json left);
+                                                                 ("right", exp_to_json right)]
   | T.Jexp_update (exp, op, prefix) -> ast "UpdateExpression" [("operator", J.String op);
                                                                ("argument", exp_to_json exp);
                                                                ("prefix", J.Bool prefix)]

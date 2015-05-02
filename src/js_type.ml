@@ -24,6 +24,7 @@ and expression =
   | Jexp_call of expression * expression list
   | Jexp_unary of expression * UTF8.t
   | Jexp_binary of expression * UTF8.t * expression
+  | Jexp_logical of expression * UTF8.t * expression
   | Jexp_update of expression * UTF8.t * bool
   | Jexp_conditional of expression * expression * expression
   | Jexp_assignment of expression * UTF8.t * expression

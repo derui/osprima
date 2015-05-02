@@ -323,28 +323,28 @@ EOF {None}
 
   logical_and_expression:
     bitwise_or_expression {$1}
-                |logical_and_expression tok_logical_and bitwise_or_expression {Js_type.Jexp_binary($1, $2, $3)}
+                |logical_and_expression tok_logical_and bitwise_or_expression {Js_type.Jexp_logical($1, $2, $3)}
   ;
   logical_and_expression_no_in:
     bitwise_or_expression_no_in {$1}
-                |logical_and_expression_no_in tok_logical_and bitwise_or_expression_no_in {Js_type.Jexp_binary($1, $2, $3)}
+                |logical_and_expression_no_in tok_logical_and bitwise_or_expression_no_in {Js_type.Jexp_logical($1, $2, $3)}
   ;
   logical_and_expression_nfb:
     bitwise_or_expression_nfb {$1}
-                |logical_and_expression_nfb tok_logical_and bitwise_or_expression {Js_type.Jexp_binary($1, $2, $3)}
+                |logical_and_expression_nfb tok_logical_and bitwise_or_expression {Js_type.Jexp_logical($1, $2, $3)}
   ;
 
   logical_or_expression:
     logical_and_expression {$1}
-                |logical_or_expression tok_logical_or logical_and_expression {Js_type.Jexp_binary ($1, $2, $3)}
+                |logical_or_expression tok_logical_or logical_and_expression {Js_type.Jexp_logical ($1, $2, $3)}
   ;
   logical_or_expression_no_in:
     logical_and_expression_no_in {$1}
-                |logical_or_expression_no_in tok_logical_or logical_and_expression_no_in {Js_type.Jexp_binary ($1, $2, $3)}
+                |logical_or_expression_no_in tok_logical_or logical_and_expression_no_in {Js_type.Jexp_logical ($1, $2, $3)}
   ;
   logical_or_expression_nfb:
     logical_and_expression_nfb {$1}
-                |logical_or_expression_nfb tok_logical_or logical_and_expression {Js_type.Jexp_binary ($1, $2, $3)}
+                |logical_or_expression_nfb tok_logical_or logical_and_expression {Js_type.Jexp_logical ($1, $2, $3)}
   ;
 
   conditional_expression:
@@ -376,6 +376,7 @@ EOF {None}
 
   assignment_operator:
     tok_assign  {$1}
+                |tok_div_assign  {$1}
                 |tok_plus_assign  {$1}
                 |tok_minus_assign  {$1}
                 |tok_multi_assign  {$1}
@@ -699,6 +700,7 @@ EOF {None}
   tok_and_assign: AND_ASSIGN {"&="};
   tok_or_assign: OR_ASSIGN {"|="};
   tok_xor_assign: XOR_ASSIGN {"^="};
+  tok_div_assign: DIV_ASSIGN {"^="};
   tok_div: DIV {"/"};
 
   keyword_delete: KEYWORD_DELETE {"delete"};
