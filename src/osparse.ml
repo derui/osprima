@@ -26,10 +26,10 @@ let loop filename () =
   In_channel.close inx
 
 let command = Command.basic
-  ~summary:"Parse ECMAScript to AST"
+  ~summary:"Parse JavaScript v5 to AST"
   ~readme:(fun () -> "More detailed information")
   Command.Spec.(empty +> anon ("filename" %: string))
   loop
 
 let () =
-  Command.run ~version:"0.0.1" ~build_info:"derui" command
+  Command.run ~version:Version.version ~build_info:"" command
