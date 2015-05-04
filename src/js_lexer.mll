@@ -158,4 +158,4 @@ let single_escape_sequence = (['\\' '"' '\'' 'b' 'f' 'n' 'r' 't' 'v'] | '0' |
   and string_parse buf = parse
     ("\\\"" | [^ '"'])* as str '"' {STRING(str, Js_type.Sq_double)}
   and single_string_parse buf = parse
-    ("\\" single_escape_sequence | [^ '\'' '\\'])* as str '\'' {STRING(str, Js_type.Sq_double)}
+    ("\\" single_escape_sequence | [^ '\'' '\\'])* as str '\'' {STRING(str, Js_type.Sq_single)}

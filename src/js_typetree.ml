@@ -28,20 +28,46 @@ let regexp regex flag =
                 ]
 
 let hex_to_int = function
-  | c when '0' <= c && c <= '9' -> (Char.to_int c) - (Char.to_int '0')
-  | c when 'a' = c || c = 'A' -> 10
-  | c when 'b' = c || c = 'B' -> 11
-  | c when 'c' = c || c = 'C' -> 12
-  | c when 'd' = c || c = 'D' -> 13
-  | c when 'e' = c || c = 'E' -> 14
-  | c when 'f' = c || c = 'F' -> 15
+  | '0'..'9' as c -> (Char.to_int c) - (Char.to_int '0')
+  | 'a' | 'A' -> 10
+  | 'b' | 'B' -> 11
+  | 'c' | 'C' -> 12
+  | 'd' | 'D' -> 13
+  | 'e' | 'E' -> 14
+  | 'f' | 'F' -> 15
   | c -> failwith ("Unknown Hex charactor: " ^ (String.of_char c))
+
+let replace_over_espaced_sequences s =
+  let buf = String.length s |> Buffer.create
+  and subbuf = Buffer.create 0 in
+
+  String.iter s ~f:(fun c ->
+    match c with
+    | '\\' when Buffer.length subbuf = 0 -> Buffer.add_char subbuf c
+    | _ when Buffer.length subbuf <> 0 -> begin
+      match c with
+      | 'b' -> Buffer.add_bytes buf "\b"
+      | 'n' -> Buffer.add_bytes buf "\n"
+      | 'r' -> Buffer.add_bytes buf "\r"
+      | 't' -> Buffer.add_bytes buf "\t"
+      | '\012' -> Buffer.add_bytes buf "\012" (* \f *)
+      | '\011' -> Buffer.add_bytes buf "\011" (* \v *)
+      | '\\' -> Buffer.add_bytes buf "\\"
+      | '"' -> Buffer.add_bytes buf "\""
+      | '\'' -> Buffer.add_bytes buf "'"
+      | _ -> Buffer.add_char subbuf c; Buffer.add_buffer buf subbuf
+    end;
+      Buffer.reset subbuf
+    | _ -> Buffer.add_char buf c
+  );
+
+  Buffer.contents buf
 
 (* converters *)
 let rec literal_to_json = function
   | T.Jl_null -> literal J.Null "null"
   | T.Jl_bool b -> literal (J.Bool b) (string_of_bool b)
-  | T.Jl_string (raw, s) -> literal (J.String s) raw
+  | T.Jl_string (raw, s) -> literal (J.String (replace_over_espaced_sequences s)) raw
   | T.Jl_number (raw, n) -> literal (J.Number n) raw
   | T.Jl_hex_digit (raw) ->
      let hex = String.sub raw 2 (String.length raw - 2) |> String.to_list |> List.rev in
@@ -73,8 +99,8 @@ and exp_to_json = function
                                                 ("method", J.Bool false);
                                                 ("shorthand", J.Bool false)]
   | T.Jexp_member (callee, memb, comp) -> ast "MemberExpression" [("computed", J.Bool comp);
-                                                            ("object", exp_to_json callee);
-                                                            ("property", exp_to_json memb)]
+                                                                  ("object", exp_to_json callee);
+                                                                  ("property", exp_to_json memb)]
   | T.Jexp_new (callee, args) -> ast "NewExpression" [
     ("callee", exp_to_json callee); ("arguments", J.Array(List.map ~f:exp_to_json args))]
   | T.Jexp_call (callee, args) -> ast "CallExpression" [

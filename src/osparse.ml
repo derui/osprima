@@ -26,7 +26,7 @@ let loop filename () =
   In_channel.close inx
 
 let command = Command.basic
-  ~summary:"Parse JavaScript v5 to AST"
+  ~summary:"Parse JavaScript to AST"
   ~readme:(fun () -> "More detailed information")
   Command.Spec.(empty +> anon ("filename" %: string))
   loop

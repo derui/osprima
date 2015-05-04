@@ -9,7 +9,7 @@
 
   let quot_to_string = function
     | Js_type.Sq_single -> "'"
-    | Js_type.Sq_double -> "'"
+    | Js_type.Sq_double -> "\""
 
 %}
 
