@@ -9,7 +9,7 @@
 
   let quot_to_string = function
     | Js_type.Sq_single -> "'"
-    | Js_type.Sq_double -> "\""
+    | Js_type.Sq_double -> "'"
 
 %}
 
@@ -115,14 +115,14 @@ EOF {None}
   member_expression:
     primary_expression {$1}
    |function_expression {$1}
-   |member_expression LBRACE expression RBRACE {Js_type.Jexp_member($1, $3)}
-   |member_expression DOT identifier {Js_type.Jexp_member($1, $3)}
+   |member_expression LBRACE expression RBRACE {Js_type.Jexp_member($1, $3, true)}
+   |member_expression DOT identifier {Js_type.Jexp_member($1, $3, false)}
    |KEYWORD_NEW member_expression arguments {Js_type.Jexp_new($2, $3)}
   ;
   member_expression_nfb:
     primary_expression_nb {$1}
-   |member_expression_nfb LBRACE expression RBRACE {Js_type.Jexp_member($1, $3)}
-   |member_expression_nfb DOT identifier {Js_type.Jexp_member($1, $3)}
+   |member_expression_nfb LBRACE expression RBRACE {Js_type.Jexp_member($1, $3, true)}
+   |member_expression_nfb DOT identifier {Js_type.Jexp_member($1, $3, false)}
    |KEYWORD_NEW member_expression_nfb arguments {Js_type.Jexp_new($2, $3)}
   ;
 
@@ -138,14 +138,14 @@ EOF {None}
   call_expression:
     member_expression arguments {Js_type.Jexp_call($1,$2)}
    |call_expression arguments {Js_type.Jexp_call($1, $2)}
-   |call_expression LBRACE expression RBRACE {Js_type.Jexp_member($1, $3)}
-   |call_expression DOT identifier {Js_type.Jexp_member($1,$3)}
+   |call_expression LBRACE expression RBRACE {Js_type.Jexp_member($1, $3, true)}
+   |call_expression DOT identifier {Js_type.Jexp_member($1,$3, false)}
   ;
   call_expression_nfb:
     member_expression_nfb arguments {Js_type.Jexp_call($1,$2)}
    |call_expression_nfb arguments {Js_type.Jexp_call($1, $2)}
-   |call_expression_nfb LBRACE expression RBRACE {Js_type.Jexp_member($1, $3)}
-   |call_expression_nfb DOT identifier {Js_type.Jexp_member($1,$3)}
+   |call_expression_nfb LBRACE expression RBRACE {Js_type.Jexp_member($1, $3, true)}
+   |call_expression_nfb DOT identifier {Js_type.Jexp_member($1,$3, false)}
   ;
 
   left_hand_side_expression:
@@ -164,13 +164,13 @@ EOF {None}
 
   post_fix_expresison:
     left_hand_side_expression {$1}
-                |left_hand_side_expression tok_increment {Js_type.Jexp_update($1, $2, true)}
-                |left_hand_side_expression tok_decrement {Js_type.Jexp_update($1, $2, true)}
+                |left_hand_side_expression tok_increment {Js_type.Jexp_update($1, $2, false)}
+                |left_hand_side_expression tok_decrement {Js_type.Jexp_update($1, $2, false)}
   ;
   post_fix_expresison_nfb:
     left_hand_side_expression_nfb {$1}
-                |left_hand_side_expression_nfb tok_increment {Js_type.Jexp_update($1, $2, true)}
-                |left_hand_side_expression_nfb tok_decrement {Js_type.Jexp_update($1, $2, true)}
+                |left_hand_side_expression_nfb tok_increment {Js_type.Jexp_update($1, $2, false)}
+                |left_hand_side_expression_nfb tok_decrement {Js_type.Jexp_update($1, $2, false)}
   ;
 
   unary_expression:
@@ -178,8 +178,8 @@ EOF {None}
                 |keyword_delete unary_expression {Js_type.Jexp_unary($2, $1)}
                 |keyword_void unary_expression {Js_type.Jexp_unary($2, $1)}
                 |keyword_typeof unary_expression {Js_type.Jexp_unary($2, $1)}
-                |tok_increment unary_expression {Js_type.Jexp_update($2, $1, false)}
-                |tok_decrement unary_expression {Js_type.Jexp_update($2, $1, false)}
+                |tok_increment unary_expression {Js_type.Jexp_update($2, $1, true)}
+                |tok_decrement unary_expression {Js_type.Jexp_update($2, $1, true)}
                 |tok_plus unary_expression {Js_type.Jexp_unary($2, $1)}
                 |tok_minus unary_expression {Js_type.Jexp_unary($2, $1)}
                 |tok_comp unary_expression {Js_type.Jexp_unary($2, $1)}
@@ -190,8 +190,8 @@ EOF {None}
                 |keyword_delete unary_expression_nfb {Js_type.Jexp_unary($2, $1)}
                 |keyword_void unary_expression_nfb {Js_type.Jexp_unary($2, $1)}
                 |keyword_typeof unary_expression_nfb {Js_type.Jexp_unary($2, $1)}
-                |tok_increment unary_expression_nfb {Js_type.Jexp_update($2, $1, false)}
-                |tok_decrement unary_expression_nfb {Js_type.Jexp_update($2, $1, false)}
+                |tok_increment unary_expression_nfb {Js_type.Jexp_update($2, $1, true)}
+                |tok_decrement unary_expression_nfb {Js_type.Jexp_update($2, $1, true)}
                 |tok_plus unary_expression_nfb {Js_type.Jexp_unary($2, $1)}
                 |tok_minus unary_expression_nfb {Js_type.Jexp_unary($2, $1)}
                 |tok_comp unary_expression_nfb {Js_type.Jexp_unary($2, $1)}

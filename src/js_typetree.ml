@@ -44,12 +44,12 @@ let rec literal_to_json = function
   | T.Jl_string (raw, s) -> literal (J.String s) raw
   | T.Jl_number (raw, n) -> literal (J.Number n) raw
   | T.Jl_hex_digit (raw) ->
-     let hex = String.sub raw 2 (String.length raw - 2) in
-     let num = String.foldi ~init:0 ~f:(fun index num c ->
+     let hex = String.sub raw 2 (String.length raw - 2) |> String.to_list |> List.rev in
+     let num = List.foldi ~init:0 ~f:(fun index num c ->
        let i = hex_to_int c in
-       let i = i lsl ((succ index) * 4) in
+       let i = i lsl (index * 4) in
        num + i
-     ) hex in 
+     ) hex in
      literal (J.Number (string_of_int num)) raw
   | T.Jl_regex (regex, flags) -> regexp regex flags
 
@@ -72,7 +72,7 @@ and exp_to_json = function
                                                 ("kind", J.String "init");
                                                 ("method", J.Bool false);
                                                 ("shorthand", J.Bool false)]
-  | T.Jexp_member (callee, memb) -> ast "MemberExpression" [("computed", J.Bool true);
+  | T.Jexp_member (callee, memb, comp) -> ast "MemberExpression" [("computed", J.Bool comp);
                                                             ("object", exp_to_json callee);
                                                             ("property", exp_to_json memb)]
   | T.Jexp_new (callee, args) -> ast "NewExpression" [
@@ -95,7 +95,8 @@ and exp_to_json = function
      ast "ConditionalExpression" [("test", exp_to_json test);("consequent", exp_to_json cons);
                                   ("alternate", exp_to_json alt)]
   | T.Jexp_assignment (left, op, right) ->
-     ast "AssignmentExpression" [("left", exp_to_json left);("operator", J.String op);
+     ast "AssignmentExpression" [("operator", J.String op);
+                                 ("left", exp_to_json left);
                                  ("right", exp_to_json right)]
   | T.Jexp_function (name, args, state) ->
      ast "FunctionExpression" [
@@ -133,10 +134,11 @@ and statement_to_json = function
                         ("alternate", alternate)]
   | T.Jstm_expression e -> ast "ExpressionStatement" [("expression", exp_to_json e)]
   | T.Jstm_do_while (cond, stmt) ->
-     ast "DoWhileStatement" [("body", statement_to_json stmt)]
+     ast "DoWhileStatement" [("body", statement_to_json stmt);
+                             ("test", exp_to_json cond)]
   | T.Jstm_while (cond, stmt) ->
-     ast "WhileStatement" [("body", statement_to_json stmt);
-                           ("test", exp_to_json cond)]
+     ast "WhileStatement" [("test", exp_to_json cond);
+                           ("body", statement_to_json stmt)]
   | T.Jstm_for (init, test, update, stmt) ->
      ast "ForStatement" [("init", or_else exp_to_json init);
                          ("test", or_else exp_to_json test);
@@ -180,6 +182,7 @@ and statement_to_json = function
                          ("handlers", match handler with | J.Null -> J.Array []
                          | _ -> J.Array [handler]);
                          ("handler", handler);
+                         ("guardedHandlers", J.Array []);
                          ("finalizer", or_else finalizer_to_json finalizer)]
   | T.Jstm_throw e ->
      ast "ThrowStatement" [("argument", exp_to_json e)]

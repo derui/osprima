@@ -19,7 +19,7 @@ and expression =
   | Jexp_array of expression list
   | Jexp_object of expression list
   | Jexp_property of expression * expression
-  | Jexp_member of expression * expression
+  | Jexp_member of expression * expression * bool
   | Jexp_new of expression * expression list
   | Jexp_call of expression * expression list
   | Jexp_unary of expression * UTF8.t
