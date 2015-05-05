@@ -6,6 +6,7 @@
 *.cmxa
 *.o
 *.cmi
+*.annot
 
 *.omc
 .omakedb*

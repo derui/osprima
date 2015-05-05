@@ -44,3 +44,5 @@ DefineCommandVars()
 # Include the OMakefile in this directory.
 #
 .SUBDIRS: .
+
+INSTALL_DIR = $(dirname $(shella which ocamlc))

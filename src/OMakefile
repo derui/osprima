@@ -7,7 +7,7 @@ open MyOCaml
 ########################################################################
 # Phony targets are scoped, so you probably want to declare them first.
 #
-.PHONY: clean all
+.PHONY: clean all install
 
 #
 # This project requires ocamlfind (default - false).
@@ -34,13 +34,13 @@ OCAMLINCLUDES += .
 #
 # The default values are defined as follows:
 #
-NATIVE_ENABLED = $(OCAMLOPT_EXISTS)
+NATIVE_ENABLED = true
 BYTE_ENABLED = true
 
 #
 # Various options
 #
-OCAMLFLAGS    += -thread -g
+OCAMLFLAGS    += -thread -annot -bin-annot
 OCAMLCFLAGS   +=
 OCAMLOPTFLAGS +=
 MENHIR_FLAGS += --strict --infer --explain
@@ -73,11 +73,16 @@ FILE[]= $(ls *.ml)
 FILE += $(ls *.mly)
 FILE += $(ls *.mll)
 
-OCamlProgram($(PROGRAM), $(removesuffix $(FILE)))
+programs = $(OCamlProgram $(PROGRAM), $(removesuffix $(FILE)))
 
-all: $(PROGRAM)$(EXE)
+all: $(programs)
 
 .DEFAULT: all
 
+INSTALL_DIR = $(dirname $(shella which ocamlc))
 install:
 	CreateInstalled($(LIB), $(glob i, src/*ml) $(glob i, src/*c))
+	cp ./osparse$(EXE) $(INSTALL_DIR)
+
+uninstall:
+	rm -f $(INSTALL_DIR)/osparse$(EXE)
